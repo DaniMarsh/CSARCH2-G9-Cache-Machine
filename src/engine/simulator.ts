@@ -8,6 +8,7 @@ import type {
   ReplacementPolicy,
   SimulationConfig,
   SimulationMetrics,
+  StepAction,
 } from './types';
 
 /** Fixed Main Memory size: 1024 blocks (indices 0..1023) */
@@ -61,6 +62,17 @@ export function computeAddressPartitioning(
   };
 }
 
+function assertValidTimings(cacheAccessTime: number, memoryAccessTime: number): void {
+  if (!Number.isFinite(cacheAccessTime) || cacheAccessTime < 0) {
+    throw new Error(`Cache access time Tc must be a finite number >= 0 (received ${cacheAccessTime}).`);
+  }
+  if (!Number.isFinite(memoryAccessTime) || memoryAccessTime < 0) {
+    throw new Error(
+      `Main memory access time Tm must be a finite number >= 0 (received ${memoryAccessTime}).`
+    );
+  }
+}
+
 /**
  * Computes Miss Penalty M (in ns):
  * - Non-Load-Through: M = Tc + (B * Tm) + Tc
@@ -72,6 +84,7 @@ export function calculateMissPenalty(
   cacheAccessTime: number,
   memoryAccessTime: number
 ): number {
+  assertValidTimings(cacheAccessTime, memoryAccessTime);
   if (readPolicy === 'non-load-through') {
     return cacheAccessTime + blockSize * memoryAccessTime + cacheAccessTime;
   }
@@ -91,6 +104,7 @@ export function calculateTotalAccessTime(
   cacheAccessTime: number,
   memoryAccessTime: number
 ): number {
+  assertValidTimings(cacheAccessTime, memoryAccessTime);
   const hitContribution = hits * blockSize * cacheAccessTime;
 
   if (readPolicy === 'non-load-through') {
@@ -217,12 +231,17 @@ export function simulatePolicy(
     const hitIndex = targetSet.findIndex((line) => line.valid && line.tag === tag);
 
     let outcome: 'HIT' | 'MISS';
+    let action: StepAction;
     let wayIndex: number;
     let evictedBlock: number | null = null;
+    let evictedAge: number | null = null;
+    let previousAge: number | null = null;
 
     if (hitIndex !== -1) {
       outcome = 'HIT';
+      action = 'HIT';
       wayIndex = hitIndex;
+      previousAge = targetSet[hitIndex].age;
       targetSet[hitIndex].age = ageCounter;
       hits += 1;
     } else {
@@ -232,9 +251,11 @@ export function simulatePolicy(
       // 2. Prefer first empty/invalid way (Way 0..Way 7) sequentially
       const emptyIndex = targetSet.findIndex((line) => !line.valid);
       if (emptyIndex !== -1) {
+        action = 'COLD_LOAD';
         wayIndex = emptyIndex;
       } else {
         // 3. Full set eviction: LRU = smallest age, MRU = largest age
+        action = 'EVICT';
         let victimIndex = 0;
         for (let w = 1; w < targetSet.length; w++) {
           if (policy === 'LRU') {
@@ -249,6 +270,7 @@ export function simulatePolicy(
         }
         wayIndex = victimIndex;
         evictedBlock = targetSet[victimIndex].blockAddress;
+        evictedAge = targetSet[victimIndex].age;
       }
 
       targetSet[wayIndex] = {
@@ -267,8 +289,11 @@ export function simulatePolicy(
       setIndex,
       tag,
       outcome,
+      action,
       wayIndex,
       evictedBlock,
+      evictedAge,
+      previousAge,
       age: ageCounter,
       cacheState: cloneCacheState(currentCache),
       stats,
