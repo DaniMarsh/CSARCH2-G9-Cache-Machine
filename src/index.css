@@ -103,25 +103,80 @@
   background: var(--ink-muted);
 }
 
-/* Crisp cache-cell transition feedback */
-@keyframes cellPulse {
+/* Stageshow Choreographed Playback Curves (soft arrival, no bounce, reduced-motion safe) */
+@keyframes stageHitSettle {
   0% {
-    transform: scale(0.98);
+    transform: translateY(-2px) scale(0.985);
+    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.28);
   }
-  55% {
-    transform: scale(1.015);
+  60% {
+    transform: translateY(0) scale(1.01);
+    box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.12);
   }
   100% {
-    transform: scale(1);
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0);
   }
 }
 
-.animate-cell-pulse {
-  animation: cellPulse 220ms cubic-bezier(0.22, 1, 0.36, 1);
+@keyframes stageLoadArrive {
+  0% {
+    transform: translateY(-4px);
+    opacity: 0.72;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes stageEvictSwap {
+  0% {
+    transform: translateX(-3px);
+    box-shadow: 0 0 0 0 rgba(190, 18, 60, 0.28);
+  }
+  45% {
+    transform: translateX(2px);
+    box-shadow: 0 0 0 4px rgba(190, 18, 60, 0.12);
+  }
+  100% {
+    transform: translateX(0);
+    box-shadow: 0 0 0 0 rgba(190, 18, 60, 0);
+  }
+}
+
+@keyframes stageBannerSettle {
+  0% {
+    opacity: 0.75;
+    transform: translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stage-cell-hit {
+  animation: stageHitSettle 360ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.stage-cell-load {
+  animation: stageLoadArrive 320ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.stage-cell-evict {
+  animation: stageEvictSwap 380ms cubic-bezier(0.45, 0, 0.1, 1) forwards;
+}
+
+.stage-banner-settle {
+  animation: stageBannerSettle 240ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-cell-pulse {
+  .stage-cell-hit,
+  .stage-cell-load,
+  .stage-cell-evict,
+  .stage-banner-settle {
     animation: none !important;
   }
   *,

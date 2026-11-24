@@ -141,14 +141,18 @@ export const CacheGrid: React.FC<CacheGridProps> = ({
                     }
                     if (isHit) {
                       cellClasses =
-                        'border-2 border-status-hit bg-status-hit-bg text-ink-primary shadow-sm animate-cell-pulse';
+                        'border-2 border-status-hit bg-status-hit-bg text-ink-primary shadow-sm stage-cell-hit';
                     } else if (isEvict) {
                       cellClasses =
-                        'border-2 border-status-evict bg-status-evict-bg text-ink-primary shadow-sm animate-cell-pulse';
+                        'border-2 border-status-evict bg-status-evict-bg text-ink-primary shadow-sm stage-cell-evict';
                     } else if (isColdLoad) {
                       cellClasses =
-                        'border-2 border-status-miss bg-status-miss-bg text-ink-primary shadow-sm animate-cell-pulse';
+                        'border-2 border-status-miss bg-status-miss-bg text-ink-primary shadow-sm stage-cell-load';
                     }
+
+                    const animKey = isActiveCell
+                      ? `${line.way}-step-${activeStep?.step}`
+                      : `${line.way}`;
 
                     return (
                       <div
@@ -157,6 +161,7 @@ export const CacheGrid: React.FC<CacheGridProps> = ({
                         className={compact ? 'p-1' : 'p-1.5'}
                       >
                         <div
+                          key={animKey}
                           className={`flex flex-col justify-between rounded font-mono tabular-nums transition-colors ${
                             compact ? 'min-h-[60px] px-1.5 py-1' : 'min-h-[68px] px-2 py-1.5'
                           } ${cellClasses}`}
