@@ -18,19 +18,19 @@ export const CacheGrid: React.FC<CacheGridProps> = ({
 }) => {
   const showStepHighlight = highlightActive && activeStep !== null;
   const gridColsClass = compact
-    ? 'grid-cols-[38px_repeat(8,minmax(0,1fr))]'
-    : 'grid-cols-[54px_repeat(8,minmax(0,1fr))]';
+    ? 'grid-cols-[40px_repeat(8,minmax(0,1fr))]'
+    : 'grid-cols-[56px_repeat(8,minmax(0,1fr))]';
 
   return (
     <div
       data-testid={`cache-grid-${policy.toLowerCase()}`}
-      className="flex flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-card"
+      className="flex flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface"
     >
       {/* Grid Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-subtle/60 px-3.5 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-subtle/45 px-3.5 py-2">
         <div className="flex items-center gap-2">
           <span
-            className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${
+            className={`inline-block h-2 w-2 shrink-0 rounded-full ${
               policy === 'LRU' ? 'bg-accent-primary' : 'bg-ink-primary'
             }`}
             aria-hidden="true"
@@ -75,17 +75,21 @@ export const CacheGrid: React.FC<CacheGridProps> = ({
         )}
       </div>
 
-      {/* Zero-Clipping Responsive 8-Way Grid */}
+      {/* Zero-Clipping Responsive 8-Way Grid with Sticky Set Index Column */}
       <div className="trace-scroll overflow-x-auto">
-        <div className={compact ? 'min-w-[540px]' : 'min-w-[680px]'}>
+        <div
+          role="grid"
+          aria-label={`8-Way Block Set Associative ${policy} Cache Grid`}
+          className={compact ? 'min-w-[576px]' : 'min-w-[680px]'}
+        >
           {/* Column Header Row */}
           <div
             role="row"
-            className={`grid ${gridColsClass} border-b border-border-subtle bg-subtle/40 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-secondary`}
+            className={`grid ${gridColsClass} border-b border-border-subtle bg-subtle/50 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-secondary`}
           >
             <div
               role="columnheader"
-              className="flex items-center justify-center border-r border-border-subtle py-2"
+              className="sticky left-0 z-10 flex items-center justify-center border-r border-border-subtle bg-subtle py-2"
             >
               Set
             </div>
@@ -113,13 +117,13 @@ export const CacheGrid: React.FC<CacheGridProps> = ({
                     isActiveSet ? 'bg-accent-soft/45' : 'bg-surface'
                   }`}
                 >
-                  {/* Set Index Label */}
+                  {/* Sticky Set Index Label */}
                   <div
                     role="rowheader"
-                    className={`flex items-center justify-center border-r border-border-subtle font-mono text-xs font-semibold tabular-nums ${
+                    className={`sticky left-0 z-10 flex items-center justify-center border-r border-border-subtle font-mono text-xs font-semibold tabular-nums ${
                       isActiveSet
-                        ? 'border-l-2 border-l-accent-primary bg-accent-soft text-accent-primary'
-                        : 'bg-subtle/30 text-ink-secondary'
+                        ? 'bg-accent-soft text-accent-primary'
+                        : 'bg-canvas text-ink-secondary'
                     }`}
                   >
                     S{setIdx}
@@ -141,13 +145,13 @@ export const CacheGrid: React.FC<CacheGridProps> = ({
                     }
                     if (isHit) {
                       cellClasses =
-                        'border-2 border-status-hit bg-status-hit-bg text-ink-primary shadow-sm stage-cell-hit';
+                        'border-2 border-status-hit bg-status-hit-bg text-ink-primary stage-cell-hit';
                     } else if (isEvict) {
                       cellClasses =
-                        'border-2 border-status-evict bg-status-evict-bg text-ink-primary shadow-sm stage-cell-evict';
+                        'border-2 border-status-evict bg-status-evict-bg text-ink-primary stage-cell-evict';
                     } else if (isColdLoad) {
                       cellClasses =
-                        'border-2 border-status-miss bg-status-miss-bg text-ink-primary shadow-sm stage-cell-load';
+                        'border-2 border-status-miss bg-status-miss-bg text-ink-primary stage-cell-load';
                     }
 
                     const animKey = isActiveCell
@@ -163,7 +167,7 @@ export const CacheGrid: React.FC<CacheGridProps> = ({
                         <div
                           key={animKey}
                           className={`flex flex-col justify-between rounded font-mono tabular-nums transition-colors ${
-                            compact ? 'min-h-[60px] px-1.5 py-1' : 'min-h-[68px] px-2 py-1.5'
+                            compact ? 'min-h-[62px] px-2 py-1.5' : 'min-h-[68px] px-2.5 py-1.5'
                           } ${cellClasses}`}
                         >
                           {/* Top Row: Valid bit & Age */}
