@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* UI/UX Pro Max Design System — Minimalist Warm Stationery Technical Workbench */
+/* Warm Stationery Technical Workbench Tokens */
 :root {
   /* Paper & Surface Hierarchy */
   --bg-canvas: #F8F6F1;
@@ -32,15 +32,11 @@
   --status-miss-bg: #FFFBEB;
   --status-miss-border: #FDE68A;
 
-  --status-load: #1D4ED8;
-  --status-load-bg: #EFF6FF;
-  --status-load-border: #BFDBFE;
-
   --status-evict: #BE123C;
   --status-evict-bg: #FFF1F2;
   --status-evict-border: #FECDD3;
 
-  /* Density-7 Technical Workbench Spacing Scale */
+  /* Technical Workbench Spacing Scale */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -52,13 +48,14 @@
 @layer base {
   html {
     color-scheme: light;
-    scroll-padding-top: 4rem;
+    scroll-padding-top: 7.5rem;
   }
 
   body {
     font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-canvas);
     color: var(--ink-primary);
+    caret-color: var(--accent-primary);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
@@ -66,7 +63,8 @@
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible,
-  summary:focus-visible {
+  summary:focus-visible,
+  tr:focus-visible {
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
@@ -76,53 +74,34 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
-
-  .stationery-card {
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    box-shadow: 0 1px 2px rgba(26, 24, 22, 0.04);
-  }
 }
 
-/* Subtle custom scrollbars for scrollable trace logs */
-.trace-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Palette-matched scroll containers (standard scrollbar behavior, warm stone tone) */
+.trace-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--bg-subtle);
 }
 
-.trace-scroll::-webkit-scrollbar-track {
-  background: var(--bg-subtle);
-}
-
-.trace-scroll::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 4px;
-}
-
-.trace-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--ink-muted);
-}
-
-/* Stageshow Choreographed Playback Curves (soft arrival, no bounce, reduced-motion safe) */
+/* Snappy Operate-mode cell state transitions (220-260ms, reduced-motion safe) */
 @keyframes stageHitSettle {
   0% {
-    transform: translateY(-2px) scale(0.985);
-    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.28);
+    transform: scale(0.985);
+    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.24);
   }
-  60% {
-    transform: translateY(0) scale(1.01);
-    box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.12);
+  55% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
   }
   100% {
-    transform: translateY(0) scale(1);
+    transform: scale(1);
     box-shadow: 0 0 0 0 rgba(4, 120, 87, 0);
   }
 }
 
 @keyframes stageLoadArrive {
   0% {
-    transform: translateY(-4px);
-    opacity: 0.72;
+    transform: translateY(-3px);
+    opacity: 0.78;
   }
   100% {
     transform: translateY(0);
@@ -132,12 +111,12 @@
 
 @keyframes stageEvictSwap {
   0% {
-    transform: translateX(-3px);
-    box-shadow: 0 0 0 0 rgba(190, 18, 60, 0.28);
+    transform: translateX(-2px);
+    box-shadow: 0 0 0 0 rgba(190, 18, 60, 0.24);
   }
   45% {
     transform: translateX(2px);
-    box-shadow: 0 0 0 4px rgba(190, 18, 60, 0.12);
+    box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.12);
   }
   100% {
     transform: translateX(0);
@@ -145,38 +124,22 @@
   }
 }
 
-@keyframes stageBannerSettle {
-  0% {
-    opacity: 0.75;
-    transform: translateY(-2px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .stage-cell-hit {
-  animation: stageHitSettle 360ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  animation: stageHitSettle 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .stage-cell-load {
-  animation: stageLoadArrive 320ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  animation: stageLoadArrive 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .stage-cell-evict {
-  animation: stageEvictSwap 380ms cubic-bezier(0.45, 0, 0.1, 1) forwards;
-}
-
-.stage-banner-settle {
-  animation: stageBannerSettle 240ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  animation: stageEvictSwap 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stage-cell-hit,
   .stage-cell-load,
-  .stage-cell-evict,
-  .stage-banner-settle {
+  .stage-cell-evict {
     animation: none !important;
   }
   *,
