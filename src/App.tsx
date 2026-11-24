@@ -12,6 +12,7 @@ import {
   parseCustomSequence,
 } from './engine/testCases';
 import type { SimulationConfig, ViewMode } from './engine/types';
+import { ArchitecturePanel } from './components/ArchitecturePanel';
 import { CacheGrid } from './components/CacheGrid';
 import { ComparisonStats } from './components/ComparisonStats';
 import { ConfigPanel, type PresetType } from './components/ConfigPanel';
@@ -282,7 +283,16 @@ export const App: React.FC = () => {
           onSpeedChange={setPlaybackSpeedMs}
         />
 
-        {/* 2. Side-by-Side Comparison Metrics */}
+        {/* 2. Collapsible Architecture & Address Mapping Diagrams */}
+        <ArchitecturePanel
+          config={config}
+          partitioning={partitioning}
+          lruStep={lruActiveStep}
+          mruStep={mruActiveStep}
+          isSnapshotMode={isSnapshotMode}
+        />
+
+        {/* 3. Side-by-Side Comparison Metrics */}
         <ComparisonStats
           lruMetrics={lruDisplayedMetrics}
           mruMetrics={mruDisplayedMetrics}
