@@ -172,6 +172,7 @@ describe('CSARCH2 Cache Simulator Engine — Formulas & Verification', () => {
     expect(parseCustomSequence('0, abc').valid).toBe(false);
     expect(parseCustomSequence('-1, 2').valid).toBe(false);
     expect(parseCustomSequence('   ').valid).toBe(false);
+    expect(parseCustomSequence(Array.from({ length: 2049 }, () => '0').join(' ')).valid).toBe(false);
   });
 
   it('confirms MRU outperforms LRU on looping Sequential (2n repeated twice) at n = 8', () => {
