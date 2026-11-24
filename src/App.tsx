@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Columns2, Layers, Rows2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Columns2, Layers, MonitorPlay, Rows2, SlidersHorizontal } from 'lucide-react';
 import {
   calculateMetrics,
   computeAddressPartitioning,
@@ -16,6 +16,8 @@ import { ArchitecturePanel } from './components/ArchitecturePanel';
 import { CacheGrid } from './components/CacheGrid';
 import { ComparisonStats } from './components/ComparisonStats';
 import { ConfigPanel, type PresetType } from './components/ConfigPanel';
+import { PlaybackBar } from './components/PlaybackBar';
+import { StepCalloutBanner } from './components/StepCalloutBanner';
 import { TraceLog } from './components/TraceLog';
 
 const DEFAULT_CONFIG: SimulationConfig = {
@@ -48,6 +50,7 @@ export const App: React.FC = () => {
   const [gridLayout, setGridLayout] = useState<'side-by-side' | 'stacked' | 'lru' | 'mru'>(
     'side-by-side'
   );
+  const [presentationMode, setPresentationMode] = useState<boolean>(false);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playbackSpeedMs, setPlaybackSpeedMs] = useState<number>(450);
@@ -139,15 +142,18 @@ export const App: React.FC = () => {
     setIsPlaying(false);
   };
 
-  const handleStepTo = (stepIndex: number) => {
-    const clamped = Math.max(0, Math.min(sequence.length, stepIndex));
-    setCurrentStepIndex(clamped);
-    if (clamped >= sequence.length) {
-      setIsPlaying(false);
-    }
-  };
+  const handleStepTo = useCallback(
+    (stepIndex: number) => {
+      const clamped = Math.max(0, Math.min(sequence.length, stepIndex));
+      setCurrentStepIndex(clamped);
+      if (clamped >= sequence.length) {
+        setIsPlaying(false);
+      }
+    },
+    [sequence.length]
+  );
 
-  const handleTogglePlay = () => {
+  const handleTogglePlay = useCallback(() => {
     if (sequence.length === 0) return;
     if (currentStepIndex >= sequence.length) {
       setCurrentStepIndex(0);
@@ -155,7 +161,51 @@ export const App: React.FC = () => {
     } else {
       setIsPlaying((prev) => !prev);
     }
-  };
+  }, [currentStepIndex, sequence.length]);
+
+  // Synchronized keyboard controls for live demos (ignored while editing inputs)
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault();
+        setPresentationMode((prev) => !prev);
+        return;
+      }
+
+      if (viewMode !== 'step-by-step') return;
+
+      if (event.code === 'Space') {
+        event.preventDefault();
+        handleTogglePlay();
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setIsPlaying(false);
+        handleStepTo(currentStepIndex + 1);
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setIsPlaying(false);
+        handleStepTo(currentStepIndex - 1);
+      } else if (event.key === 'r' || event.key === 'R') {
+        event.preventDefault();
+        setIsPlaying(false);
+        handleStepTo(0);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [viewMode, currentStepIndex, handleStepTo, handleTogglePlay]);
 
   // Animated playback timer
   useEffect(() => {
@@ -218,11 +268,14 @@ export const App: React.FC = () => {
     ? 'Initial Empty Cache (Step 0)'
     : `Through Step ${effectiveIndex} of ${sequence.length}`;
 
+  const policyLabel =
+    config.readPolicy === 'load-through' ? 'Load-Through' : 'Non-Load-Through';
+
   return (
     <div className="min-h-screen bg-canvas text-ink-primary">
       {/* Minimalist Stationery Header */}
       <header className="border-b border-border-subtle bg-surface">
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border-strong bg-subtle text-ink-primary">
               <Layers className="h-4 w-4" aria-hidden="true" />
@@ -237,53 +290,131 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Semantic Legend */}
-          <div
-            className="flex flex-wrap items-center gap-2 text-xs"
-            aria-label="Cache Event Legend"
-          >
-            <span className="inline-flex items-center gap-1.5 rounded border border-status-hit/30 bg-status-hit-bg px-2 py-0.5 font-medium text-status-hit">
-              <span className="h-2 w-2 rounded-full bg-status-hit" aria-hidden="true" />
-              Hit
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded border border-status-miss/30 bg-status-miss-bg px-2 py-0.5 font-medium text-status-miss">
-              <span className="h-2 w-2 rounded-full bg-status-miss" aria-hidden="true" />
-              Miss / Load
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded border border-status-evict/30 bg-status-evict-bg px-2 py-0.5 font-medium text-status-evict">
-              <span className="h-2 w-2 rounded-full bg-status-evict" aria-hidden="true" />
-              Evicted Slot
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Semantic Legend */}
+            <div
+              className="flex flex-wrap items-center gap-1.5 text-xs"
+              aria-label="Cache Event Legend"
+            >
+              <span className="inline-flex items-center gap-1.5 rounded border border-status-hit-border bg-status-hit-bg px-2 py-0.5 font-medium text-status-hit">
+                <span className="h-2 w-2 rounded-full bg-status-hit" aria-hidden="true" />
+                Hit
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded border border-status-miss-border bg-status-miss-bg px-2 py-0.5 font-medium text-status-miss">
+                <span className="h-2 w-2 rounded-full bg-status-miss" aria-hidden="true" />
+                Miss / Load
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded border border-status-evict-border bg-status-evict-bg px-2 py-0.5 font-medium text-status-evict">
+                <span className="h-2 w-2 rounded-full bg-status-evict" aria-hidden="true" />
+                Evicted
+              </span>
+            </div>
+
+            {/* Presentation Mode Toggle */}
+            <button
+              type="button"
+              aria-pressed={presentationMode}
+              onClick={() => setPresentationMode((prev) => !prev)}
+              title="Toggle Presentation Mode (P)"
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                presentationMode
+                  ? 'border-accent-primary bg-accent-primary text-white hover:bg-accent-primary/90'
+                  : 'border-border-strong bg-surface text-ink-primary hover:bg-hover'
+              }`}
+            >
+              {presentationMode ? (
+                <>
+                  <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                  Exit Presentation
+                </>
+              ) : (
+                <>
+                  <MonitorPlay className="h-3.5 w-3.5" aria-hidden="true" />
+                  Presentation Mode
+                </>
+              )}
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Workbench */}
-      <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-5 sm:px-6">
-        {/* 1. Configuration & Playback Panel */}
-        <ConfigPanel
-          config={config}
-          partitioning={partitioning}
-          activePreset={activePreset}
-          randomSeed={randomSeed}
-          rawSequence={rawSequence}
-          sequenceError={sequenceError}
-          sequenceLength={sequence.length}
+      <main className="mx-auto max-w-[1440px] space-y-4 px-4 py-5 sm:px-6">
+        {/* 1. Configuration Panel (Hidden cleanly in Presentation Mode) */}
+        {presentationMode ? (
+          <div
+            aria-label="Active Configuration Summary"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 font-mono text-xs tabular-nums shadow-card"
+          >
+            <div className="flex flex-wrap items-center gap-2 text-ink-secondary">
+              <span className="rounded bg-accent-soft px-2 py-0.5 font-semibold text-accent-primary">
+                PRESENTATION MODE
+              </span>
+              <span>
+                n=<strong className="text-ink-primary">{config.cacheBlocks}</strong> ({partitioning.numSets}s&times;8w)
+              </span>
+              <span className="text-border-strong">|</span>
+              <span>
+                B=<strong className="text-ink-primary">{config.blockSize}</strong>w
+              </span>
+              <span className="text-border-strong">|</span>
+              <span>
+                <strong className="text-ink-primary">{policyLabel}</strong>
+              </span>
+              <span className="text-border-strong">|</span>
+              <span>
+                Tc=<strong className="text-ink-primary">{config.cacheAccessTime}ns</strong>, Tm=
+                <strong className="text-ink-primary">{config.memoryAccessTime}ns</strong>
+              </span>
+              <span className="text-border-strong">|</span>
+              <span>
+                Seq=<strong className="text-ink-primary">{sequence.length}</strong> accesses
+              </span>
+            </div>
+            <span className="text-[11px] text-ink-muted">
+              Keys: Space (Play) &middot; &larr;/&rarr; (Step) &middot; R (Reset) &middot; P (Controls)
+            </span>
+          </div>
+        ) : (
+          <ConfigPanel
+            config={config}
+            partitioning={partitioning}
+            activePreset={activePreset}
+            randomSeed={randomSeed}
+            rawSequence={rawSequence}
+            sequenceError={sequenceError}
+            sequenceLength={sequence.length}
+            onConfigChange={handleConfigChange}
+            onSelectPreset={handleSelectPreset}
+            onRerollRandom={handleRerollRandom}
+            onRawSequenceChange={handleRawSequenceChange}
+          />
+        )}
+
+        {/* 2. Synchronized Playback Bar & View Mode Toggle (Always Accessible) */}
+        <PlaybackBar
           viewMode={viewMode}
           currentStepIndex={currentStepIndex}
+          sequenceLength={sequence.length}
           isPlaying={isPlaying}
           playbackSpeedMs={playbackSpeedMs}
-          onConfigChange={handleConfigChange}
-          onSelectPreset={handleSelectPreset}
-          onRerollRandom={handleRerollRandom}
-          onRawSequenceChange={handleRawSequenceChange}
           onViewModeChange={handleViewModeChange}
           onTogglePlay={handleTogglePlay}
           onStepTo={handleStepTo}
           onSpeedChange={setPlaybackSpeedMs}
         />
 
-        {/* 2. Collapsible Architecture & Address Mapping Diagrams */}
+        {/* 3. Stageshow Step Callout Banner (Step-by-Step Mode) */}
+        {!isSnapshotMode && (
+          <StepCalloutBanner
+            lruStep={lruActiveStep}
+            mruStep={mruActiveStep}
+            totalSteps={sequence.length}
+            nextBlockPreview={sequence.length > 0 ? sequence[0] : null}
+          />
+        )}
+
+        {/* 4. Collapsible Architecture & Address Mapping Diagrams */}
         <ArchitecturePanel
           config={config}
           partitioning={partitioning}
@@ -292,7 +423,7 @@ export const App: React.FC = () => {
           isSnapshotMode={isSnapshotMode}
         />
 
-        {/* 3. Side-by-Side Comparison Metrics */}
+        {/* 5. Side-by-Side Comparison Metrics */}
         <ComparisonStats
           lruMetrics={lruDisplayedMetrics}
           mruMetrics={mruDisplayedMetrics}
@@ -300,7 +431,7 @@ export const App: React.FC = () => {
           stepLabel={stepLabel}
         />
 
-        {/* 3. Visual Cache Memory Grids (LRU vs MRU) */}
+        {/* 6. Visual Cache Memory Grids (LRU vs MRU) */}
         <section aria-label="Visual Cache Memory Grids" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -377,7 +508,7 @@ export const App: React.FC = () => {
           </div>
         </section>
 
-        {/* 4. Text Trace Log (Available in Both Modes) */}
+        {/* 7. Text Trace Log (Available in Both Modes) */}
         <TraceLog
           lruResult={simulation.lru}
           mruResult={simulation.mru}

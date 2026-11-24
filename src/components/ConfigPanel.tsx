@@ -1,17 +1,9 @@
 import React from 'react';
 import {
-  FastForward,
-  Pause,
-  Play,
-  RefreshCw,
-  RotateCcw,
-  SkipBack,
-  SkipForward,
-  SlidersHorizontal,
   AlertCircle,
   Cpu,
-  Eye,
-  ListOrdered,
+  RefreshCw,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   VALID_BLOCK_SIZES,
@@ -22,7 +14,6 @@ import type {
   AddressPartitioning,
   ReadPolicy,
   SimulationConfig,
-  ViewMode,
 } from '../engine/types';
 
 export type PresetType = 'sequential' | 'mid-repeat' | 'random' | 'custom';
@@ -35,18 +26,10 @@ interface ConfigPanelProps {
   rawSequence: string;
   sequenceError: string | null;
   sequenceLength: number;
-  viewMode: ViewMode;
-  currentStepIndex: number; // 0 = initial empty state, 1..N = after step k
-  isPlaying: boolean;
-  playbackSpeedMs: number;
   onConfigChange: (next: SimulationConfig) => void;
   onSelectPreset: (preset: PresetType) => void;
   onRerollRandom: () => void;
   onRawSequenceChange: (val: string) => void;
-  onViewModeChange: (mode: ViewMode) => void;
-  onTogglePlay: () => void;
-  onStepTo: (stepIndex: number) => void;
-  onSpeedChange: (ms: number) => void;
 }
 
 export const ConfigPanel: React.FC<ConfigPanelProps> = ({
@@ -57,18 +40,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   rawSequence,
   sequenceError,
   sequenceLength,
-  viewMode,
-  currentStepIndex,
-  isPlaying,
-  playbackSpeedMs,
   onConfigChange,
   onSelectPreset,
   onRerollRandom,
   onRawSequenceChange,
-  onViewModeChange,
-  onTogglePlay,
-  onStepTo,
-  onSpeedChange,
 }) => {
   const missPenalty = calculateMissPenalty(
     config.blockSize,
@@ -102,7 +77,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
         {/* Computed Address Partitioning Badge */}
         <div
-          className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums"
+          className="flex flex-wrap items-center gap-2 font-mono text-xs tabular-nums"
           aria-label="Address Bit Partitioning"
         >
           <span className="inline-flex items-center gap-1.5 rounded border border-border-subtle bg-surface px-2 py-0.5 text-ink-secondary">
@@ -281,7 +256,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           <div>
             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-medium text-ink-secondary">
-                Test Case Presets (scaled to <span className="font-mono">n = {config.cacheBlocks}</span>)
+                Test Case Presets (scaled to{' '}
+                <span className="font-mono">n = {config.cacheBlocks}</span>)
               </span>
               {activePreset === 'random' && (
                 <div className="flex items-center gap-1.5">
@@ -366,160 +342,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             )}
           </div>
         </div>
-      </div>
-
-      {/* Bottom Bar: View Mode Toggle & Step-by-Step Playback Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle bg-subtle/40 px-4 py-3">
-        {/* View Mode Toggle */}
-        <div
-          role="radiogroup"
-          aria-label="Simulation View Mode"
-          className="inline-flex rounded-md border border-border-subtle bg-subtle p-0.5"
-        >
-          <button
-            type="button"
-            role="radio"
-            aria-checked={viewMode === 'step-by-step'}
-            onClick={() => onViewModeChange('step-by-step')}
-            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              viewMode === 'step-by-step'
-                ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
-                : 'text-ink-secondary hover:text-ink-primary'
-            }`}
-          >
-            <ListOrdered className="h-3.5 w-3.5" aria-hidden="true" />
-            Step-by-Step Trace
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={viewMode === 'snapshot'}
-            onClick={() => onViewModeChange('snapshot')}
-            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              viewMode === 'snapshot'
-                ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
-                : 'text-ink-secondary hover:text-ink-primary'
-            }`}
-          >
-            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-            Final Memory Snapshot
-          </button>
-        </div>
-
-        {/* Playback Controls (Active in Step-by-Step Mode) */}
-        {viewMode === 'step-by-step' ? (
-          <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onStepTo(0)}
-                disabled={currentStepIndex === 0}
-                aria-label="Reset to initial empty cache"
-                title="Reset (Step 0)"
-                className="rounded border border-border-strong bg-surface p-1.5 text-ink-primary transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onStepTo(Math.max(0, currentStepIndex - 1))}
-                disabled={currentStepIndex === 0}
-                aria-label="Previous step"
-                title="Step Back"
-                className="rounded border border-border-strong bg-surface p-1.5 text-ink-primary transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <SkipBack className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={onTogglePlay}
-                disabled={sequenceLength === 0}
-                aria-label={isPlaying ? 'Pause playback' : 'Play simulation'}
-                className="inline-flex min-w-[82px] items-center justify-center gap-1.5 rounded bg-accent-primary px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="h-3.5 w-3.5" /> Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-3.5 w-3.5" /> Play
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => onStepTo(Math.min(sequenceLength, currentStepIndex + 1))}
-                disabled={currentStepIndex >= sequenceLength}
-                aria-label="Next step"
-                title="Step Forward"
-                className="rounded border border-border-strong bg-surface p-1.5 text-ink-primary transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <SkipForward className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onStepTo(sequenceLength)}
-                disabled={currentStepIndex >= sequenceLength}
-                aria-label="Jump to final step"
-                title="Jump to Final"
-                className="rounded border border-border-strong bg-surface p-1.5 text-ink-primary transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <FastForward className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Scrub Bar */}
-            <div className="flex min-w-[180px] max-w-xs flex-1 items-center gap-2">
-              <label htmlFor="step-scrubber" className="sr-only">
-                Scrub simulation step
-              </label>
-              <input
-                id="step-scrubber"
-                type="range"
-                min={0}
-                max={sequenceLength}
-                value={currentStepIndex}
-                onChange={(e) => onStepTo(Number.parseInt(e.target.value, 10))}
-                className="h-1.5 flex-1 cursor-pointer accent-accent-primary"
-              />
-              <span className="min-w-[78px] text-right font-mono text-xs tabular-nums text-ink-secondary">
-                Step <strong className="text-ink-primary">{currentStepIndex}</strong>/{sequenceLength}
-              </span>
-            </div>
-
-            {/* Speed Slider */}
-            <div className="flex items-center gap-2 border-l border-border-subtle pl-3">
-              <label
-                htmlFor="speed-slider"
-                className="text-xs text-ink-secondary"
-              >
-                Speed
-              </label>
-              <input
-                id="speed-slider"
-                type="range"
-                min={100}
-                max={1200}
-                step={50}
-                value={1300 - playbackSpeedMs}
-                onChange={(e) => onSpeedChange(1300 - Number.parseInt(e.target.value, 10))}
-                className="h-1.5 w-20 cursor-pointer accent-accent-primary"
-              />
-              <span className="min-w-[46px] font-mono text-[11px] tabular-nums text-ink-muted">
-                {playbackSpeedMs}ms
-              </span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-ink-secondary">
-            Showing final cache state and cumulative metrics after all{' '}
-            <span className="font-mono font-semibold tabular-nums text-ink-primary">
-              {sequenceLength}
-            </span>{' '}
-            memory accesses.
-          </p>
-        )}
       </div>
     </section>
   );
