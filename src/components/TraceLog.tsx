@@ -86,13 +86,20 @@ export const TraceLog: React.FC<TraceLogProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, step: number) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelectStep(step);
+    }
+  };
+
   return (
     <section
       aria-label="Execution Trace Log"
-      className="rounded-lg border border-border-subtle bg-surface shadow-card"
+      className="overflow-hidden rounded-lg border border-border-subtle bg-surface"
     >
       {/* Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-subtle/60 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border-subtle bg-subtle/45 px-4 py-2.5">
         <div className="flex items-center gap-2">
           <Terminal className="h-4 w-4 text-ink-secondary" aria-hidden="true" />
           <h2 className="text-sm font-semibold tracking-tight text-ink-primary">
@@ -119,9 +126,9 @@ export const TraceLog: React.FC<TraceLogProps> = ({
                   role="tab"
                   aria-selected={selected}
                   onClick={() => setActiveTab(tab)}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                     selected
-                      ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
+                      ? 'bg-surface text-ink-primary ring-1 ring-border-subtle'
                       : 'text-ink-secondary hover:text-ink-primary'
                   }`}
                 >
@@ -133,18 +140,17 @@ export const TraceLog: React.FC<TraceLogProps> = ({
 
           {/* Table vs Raw Text Switch */}
           <div
-            role="radiogroup"
+            role="group"
             aria-label="Trace Display Format"
             className="inline-flex rounded-md border border-border-subtle bg-subtle p-0.5"
           >
             <button
               type="button"
-              role="radio"
-              aria-checked={displayFormat === 'table'}
+              aria-pressed={displayFormat === 'table'}
               onClick={() => setDisplayFormat('table')}
               className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                 displayFormat === 'table'
-                  ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
+                  ? 'bg-surface text-ink-primary ring-1 ring-border-subtle'
                   : 'text-ink-secondary hover:text-ink-primary'
               }`}
             >
@@ -153,12 +159,11 @@ export const TraceLog: React.FC<TraceLogProps> = ({
             </button>
             <button
               type="button"
-              role="radio"
-              aria-checked={displayFormat === 'raw'}
+              aria-pressed={displayFormat === 'raw'}
               onClick={() => setDisplayFormat('raw')}
               className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                 displayFormat === 'raw'
-                  ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
+                  ? 'bg-surface text-ink-primary ring-1 ring-border-subtle'
                   : 'text-ink-secondary hover:text-ink-primary'
               }`}
             >
@@ -171,7 +176,7 @@ export const TraceLog: React.FC<TraceLogProps> = ({
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-border-strong hover:bg-hover hover:text-ink-primary"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-surface px-2.5 py-1 text-xs font-medium text-ink-secondary transition-colors hover:border-border-strong hover:bg-hover hover:text-ink-primary"
           >
             {copied ? (
               <>
@@ -190,10 +195,10 @@ export const TraceLog: React.FC<TraceLogProps> = ({
           <button
             type="button"
             onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink-primary transition-colors hover:bg-hover"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium text-ink-primary transition-colors hover:bg-hover"
           >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            Download Trace (.txt)
+            Download (.txt)
           </button>
         </div>
       </div>
@@ -202,7 +207,7 @@ export const TraceLog: React.FC<TraceLogProps> = ({
       {displayFormat === 'table' ? (
         <div
           ref={scrollContainerRef}
-          className="trace-scroll max-h-[380px] overflow-auto"
+          className="trace-scroll max-h-[360px] overflow-auto"
         >
           <table className="w-full min-w-[660px] border-collapse text-left font-mono text-xs tabular-nums">
             <thead className="sticky top-0 z-10 border-b border-border-subtle bg-subtle text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">
@@ -244,7 +249,10 @@ export const TraceLog: React.FC<TraceLogProps> = ({
                   <tr
                     key={s.step}
                     ref={isCurrent ? activeRowRef : null}
+                    tabIndex={0}
+                    aria-current={isCurrent ? 'step' : undefined}
                     onClick={() => onSelectStep(s.step)}
+                    onKeyDown={(e) => handleRowKeyDown(e, s.step)}
                     title={
                       viewMode === 'step-by-step'
                         ? `Jump to step ${s.step}`
@@ -254,7 +262,7 @@ export const TraceLog: React.FC<TraceLogProps> = ({
                       isCurrent
                         ? 'bg-accent-soft font-semibold text-ink-primary'
                         : isFuture
-                        ? 'bg-surface text-ink-muted opacity-60 hover:bg-subtle/40 hover:opacity-100'
+                        ? 'bg-surface text-ink-muted opacity-65 hover:bg-subtle/40 hover:opacity-100'
                         : 'bg-surface text-ink-primary hover:bg-subtle/40'
                     }`}
                   >
@@ -295,7 +303,7 @@ export const TraceLog: React.FC<TraceLogProps> = ({
           </table>
         </div>
       ) : (
-        <pre className="trace-scroll max-h-[380px] overflow-auto bg-canvas/70 p-4 font-mono text-xs leading-relaxed tabular-nums text-ink-primary">
+        <pre className="trace-scroll max-h-[360px] overflow-auto bg-canvas/70 p-4 font-mono text-xs leading-relaxed tabular-nums text-ink-primary">
           {rawText}
         </pre>
       )}

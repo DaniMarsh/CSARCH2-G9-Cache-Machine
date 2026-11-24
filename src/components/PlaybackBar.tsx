@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  AlertTriangle,
   Eye,
   FastForward,
   ListOrdered,
@@ -17,6 +18,7 @@ interface PlaybackBarProps {
   sequenceLength: number;
   isPlaying: boolean;
   playbackSpeedMs: number;
+  hasSequenceError?: boolean;
   onViewModeChange: (mode: ViewMode) => void;
   onTogglePlay: () => void;
   onStepTo: (stepIndex: number) => void;
@@ -29,6 +31,7 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
   sequenceLength,
   isPlaying,
   playbackSpeedMs,
+  hasSequenceError = false,
   onViewModeChange,
   onTogglePlay,
   onStepTo,
@@ -38,45 +41,52 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
     sequenceLength > 0 ? Math.round((currentStepIndex / sequenceLength) * 100) : 0;
 
   return (
-    <section
-      aria-label="Simulation Playback Controls"
-      className="rounded-lg border border-border-subtle bg-surface shadow-card"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <div aria-label="Simulation Playback Controls">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-2.5">
         {/* View Mode Toggle */}
-        <div
-          role="radiogroup"
-          aria-label="Simulation View Mode"
-          className="inline-flex rounded-md border border-border-subtle bg-subtle p-0.5"
-        >
-          <button
-            type="button"
-            role="radio"
-            aria-checked={viewMode === 'step-by-step'}
-            onClick={() => onViewModeChange('step-by-step')}
-            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              viewMode === 'step-by-step'
-                ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
-                : 'text-ink-secondary hover:text-ink-primary'
-            }`}
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            role="group"
+            aria-label="Simulation View Mode"
+            className="inline-flex rounded-md border border-border-subtle bg-subtle p-0.5"
           >
-            <ListOrdered className="h-3.5 w-3.5" aria-hidden="true" />
-            Step-by-Step Trace
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={viewMode === 'snapshot'}
-            onClick={() => onViewModeChange('snapshot')}
-            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              viewMode === 'snapshot'
-                ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
-                : 'text-ink-secondary hover:text-ink-primary'
-            }`}
-          >
-            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-            Final Memory Snapshot
-          </button>
+            <button
+              type="button"
+              aria-pressed={viewMode === 'step-by-step'}
+              onClick={() => onViewModeChange('step-by-step')}
+              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                viewMode === 'step-by-step'
+                  ? 'bg-surface text-ink-primary ring-1 ring-border-subtle'
+                  : 'text-ink-secondary hover:text-ink-primary'
+              }`}
+            >
+              <ListOrdered className="h-3.5 w-3.5" aria-hidden="true" />
+              Step-by-Step
+            </button>
+            <button
+              type="button"
+              aria-pressed={viewMode === 'snapshot'}
+              onClick={() => onViewModeChange('snapshot')}
+              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                viewMode === 'snapshot'
+                  ? 'bg-surface text-ink-primary ring-1 ring-border-subtle'
+                  : 'text-ink-secondary hover:text-ink-primary'
+              }`}
+            >
+              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+              Final Snapshot
+            </button>
+          </div>
+
+          {hasSequenceError && (
+            <span
+              role="status"
+              className="inline-flex items-center gap-1 rounded border border-status-evict-border bg-status-evict-bg px-2 py-0.5 text-[11px] font-medium text-status-evict"
+            >
+              <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+              Showing last valid sequence
+            </span>
+          )}
         </div>
 
         {/* Synchronized Transport Controls */}
@@ -109,7 +119,7 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
                 disabled={sequenceLength === 0}
                 aria-label={isPlaying ? 'Pause playback' : 'Play simulation'}
                 title="Play / Pause (Space)"
-                className="inline-flex min-w-[84px] items-center justify-center gap-1.5 rounded bg-accent-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-w-[80px] items-center justify-center gap-1.5 rounded bg-accent-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isPlaying ? (
                   <>
@@ -144,7 +154,7 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
             </div>
 
             {/* Timeline Scrubber */}
-            <div className="flex min-w-[190px] max-w-sm flex-1 items-center gap-2.5">
+            <div className="flex min-w-[170px] max-w-sm flex-1 items-center gap-2">
               <label htmlFor="step-scrubber" className="sr-only">
                 Timeline scrubber
               </label>
@@ -157,7 +167,7 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
                 onChange={(e) => onStepTo(Number.parseInt(e.target.value, 10))}
                 className="h-1.5 flex-1 cursor-pointer accent-accent-primary"
               />
-              <span className="min-w-[82px] text-right font-mono text-xs tabular-nums text-ink-secondary">
+              <span className="min-w-[78px] text-right font-mono text-xs tabular-nums text-ink-secondary">
                 Step <strong className="text-ink-primary">{currentStepIndex}</strong>/{sequenceLength}
               </span>
             </div>
@@ -177,7 +187,7 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
                 onChange={(e) => onSpeedChange(1300 - Number.parseInt(e.target.value, 10))}
                 className="h-1.5 w-20 cursor-pointer accent-accent-primary"
               />
-              <span className="min-w-[46px] font-mono text-[11px] tabular-nums text-ink-muted">
+              <span className="min-w-[44px] font-mono text-[11px] tabular-nums text-ink-muted">
                 {playbackSpeedMs}ms
               </span>
             </div>
@@ -193,15 +203,15 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
         )}
       </div>
 
-      {/* Subtle Synchronized Progress Hairline (Step-by-Step Mode) */}
+      {/* Synchronized Progress Hairline (Step-by-Step Mode) */}
       {viewMode === 'step-by-step' && (
-        <div className="h-1 w-full overflow-hidden rounded-b-lg bg-subtle" aria-hidden="true">
+        <div className="h-[2px] w-full bg-subtle" aria-hidden="true">
           <div
-            className="h-full bg-accent-primary transition-all duration-200 ease-out"
+            className="h-full bg-accent-primary transition-all duration-150 ease-out"
             style={{ width: `${progressPct}%` }}
           />
         </div>
       )}
-    </section>
+    </div>
   );
 };
