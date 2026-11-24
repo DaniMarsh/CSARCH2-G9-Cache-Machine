@@ -155,3 +155,7 @@ vite.config.ts.timestamp-*
 .nx/cache
 .nx/workspace-data
 .nx/migrate-runs
+
+# Local AI agent skills
+.agents/
+skills-lock.json
