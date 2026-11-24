@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* UI/UX Pro Max Design Tokens — Minimalist Warm Stationery Technical Workbench */
+:root {
+  --bg-canvas: #F7F5F0;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F1EDE6;
+  --bg-hover: #EBE5DB;
+
+  --border-subtle: #E6E0D6;
+  --border-strong: #CFC7BA;
+
+  --ink-primary: #1C1917;
+  --ink-secondary: #57534E;
+  --ink-muted: #78716C;
+
+  --accent-primary: #1D4ED8;
+  --accent-soft: #EFF6FF;
+
+  --status-hit: #047857;
+  --status-hit-bg: #ECFDF5;
+
+  --status-miss: #B45309;
+  --status-miss-bg: #FFFBEB;
+
+  --status-evict: #BE123C;
+  --status-evict-bg: #FFF1F2;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+}
+
+@layer base {
+  body {
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-canvas);
+    color: var(--ink-primary);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Subtle cell highlight animation for active simulation step */
+@keyframes cellPulse {
+  0% {
+    transform: scale(0.985);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-cell-pulse {
+  animation: cellPulse 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-cell-pulse {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
