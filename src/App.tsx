@@ -1,0 +1,338 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Layers } from 'lucide-react';
+import {
+  calculateMetrics,
+  computeAddressPartitioning,
+  runDualSimulation,
+} from './engine/simulator';
+import {
+  generateMidRepeatSequence,
+  generateRandomSequence,
+  generateSequentialSequence,
+  parseCustomSequence,
+} from './engine/testCases';
+import type { SimulationConfig, ViewMode } from './engine/types';
+import { CacheGrid } from './components/CacheGrid';
+import { ComparisonStats } from './components/ComparisonStats';
+import { ConfigPanel, type PresetType } from './components/ConfigPanel';
+import { TraceLog } from './components/TraceLog';
+
+const DEFAULT_CONFIG: SimulationConfig = {
+  blockSize: 16,
+  cacheBlocks: 16,
+  readPolicy: 'non-load-through',
+  cacheAccessTime: 1,
+  memoryAccessTime: 10,
+};
+
+const INITIAL_SEED = 202609;
+
+function formatSequence(seq: number[]): string {
+  return seq.join(', ');
+}
+
+export const App: React.FC = () => {
+  const [config, setConfig] = useState<SimulationConfig>(DEFAULT_CONFIG);
+  const [activePreset, setActivePreset] = useState<PresetType>('sequential');
+  const [randomSeed, setRandomSeed] = useState<number>(INITIAL_SEED);
+  const [rawSequence, setRawSequence] = useState<string>(() =>
+    formatSequence(generateSequentialSequence(DEFAULT_CONFIG.cacheBlocks))
+  );
+  const [sequence, setSequence] = useState<number[]>(() =>
+    generateSequentialSequence(DEFAULT_CONFIG.cacheBlocks)
+  );
+  const [sequenceError, setSequenceError] = useState<string | null>(null);
+
+  const [viewMode, setViewMode] = useState<ViewMode>('step-by-step');
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [playbackSpeedMs, setPlaybackSpeedMs] = useState<number>(450);
+
+  // Pre-compute full dual simulation traces synchronously whenever config or valid sequence changes
+  const simulation = useMemo(
+    () => runDualSimulation(sequence, config),
+    [sequence, config]
+  );
+
+  const partitioning = useMemo(
+    () => computeAddressPartitioning(config.blockSize, config.cacheBlocks),
+    [config.blockSize, config.cacheBlocks]
+  );
+
+  // Regenerate preset sequence automatically when `n` changes for n-dependent presets
+  const handleConfigChange = (next: SimulationConfig) => {
+    setConfig(next);
+    if (next.cacheBlocks !== config.cacheBlocks) {
+      if (activePreset === 'sequential') {
+        const seq = generateSequentialSequence(next.cacheBlocks);
+        setSequence(seq);
+        setRawSequence(formatSequence(seq));
+        setSequenceError(null);
+        setCurrentStepIndex(0);
+        setIsPlaying(false);
+      } else if (activePreset === 'mid-repeat') {
+        const seq = generateMidRepeatSequence(next.cacheBlocks);
+        setSequence(seq);
+        setRawSequence(formatSequence(seq));
+        setSequenceError(null);
+        setCurrentStepIndex(0);
+        setIsPlaying(false);
+      }
+    }
+  };
+
+  const handleSelectPreset = (preset: PresetType) => {
+    setActivePreset(preset);
+    setIsPlaying(false);
+    setCurrentStepIndex(0);
+
+    if (preset === 'sequential') {
+      const seq = generateSequentialSequence(config.cacheBlocks);
+      setSequence(seq);
+      setRawSequence(formatSequence(seq));
+      setSequenceError(null);
+    } else if (preset === 'mid-repeat') {
+      const seq = generateMidRepeatSequence(config.cacheBlocks);
+      setSequence(seq);
+      setRawSequence(formatSequence(seq));
+      setSequenceError(null);
+    } else if (preset === 'random') {
+      const seq = generateRandomSequence(randomSeed, 64);
+      setSequence(seq);
+      setRawSequence(formatSequence(seq));
+      setSequenceError(null);
+    }
+  };
+
+  const handleRerollRandom = () => {
+    const nextSeed = Math.floor(Math.random() * 900000) + 100000;
+    setRandomSeed(nextSeed);
+    setActivePreset('random');
+    const seq = generateRandomSequence(nextSeed, 64);
+    setSequence(seq);
+    setRawSequence(formatSequence(seq));
+    setSequenceError(null);
+    setCurrentStepIndex(0);
+    setIsPlaying(false);
+  };
+
+  const handleRawSequenceChange = (val: string) => {
+    setRawSequence(val);
+    setActivePreset('custom');
+    const parsed = parseCustomSequence(val);
+    if (parsed.valid) {
+      setSequence(parsed.sequence);
+      setSequenceError(null);
+      setCurrentStepIndex(0);
+      setIsPlaying(false);
+    } else {
+      setSequenceError(parsed.error ?? 'Invalid sequence.');
+    }
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    setIsPlaying(false);
+  };
+
+  const handleStepTo = (stepIndex: number) => {
+    const clamped = Math.max(0, Math.min(sequence.length, stepIndex));
+    setCurrentStepIndex(clamped);
+    if (clamped >= sequence.length) {
+      setIsPlaying(false);
+    }
+  };
+
+  const handleTogglePlay = () => {
+    if (sequence.length === 0) return;
+    if (currentStepIndex >= sequence.length) {
+      setCurrentStepIndex(0);
+      setIsPlaying(true);
+    } else {
+      setIsPlaying((prev) => !prev);
+    }
+  };
+
+  // Animated playback timer
+  useEffect(() => {
+    if (!isPlaying || viewMode !== 'step-by-step') return;
+    const timer = window.setInterval(() => {
+      setCurrentStepIndex((prev) => {
+        if (prev >= sequence.length) {
+          setIsPlaying(false);
+          return prev;
+        }
+        const next = prev + 1;
+        if (next >= sequence.length) {
+          setIsPlaying(false);
+        }
+        return next;
+      });
+    }, playbackSpeedMs);
+
+    return () => window.clearInterval(timer);
+  }, [isPlaying, viewMode, playbackSpeedMs, sequence.length]);
+
+  // Derived states for current step vs final snapshot
+  const isSnapshotMode = viewMode === 'snapshot';
+  const effectiveIndex = isSnapshotMode ? sequence.length : currentStepIndex;
+
+  const zeroMetrics = useMemo(() => calculateMetrics(0, 0, config), [config]);
+
+  const lruActiveStep =
+    effectiveIndex > 0 ? simulation.lru.steps[effectiveIndex - 1] ?? null : null;
+  const mruActiveStep =
+    effectiveIndex > 0 ? simulation.mru.steps[effectiveIndex - 1] ?? null : null;
+
+  const lruDisplayedCache = isSnapshotMode
+    ? simulation.lru.finalCacheState
+    : lruActiveStep
+    ? lruActiveStep.cacheState
+    : simulation.lru.initialCacheState;
+
+  const mruDisplayedCache = isSnapshotMode
+    ? simulation.mru.finalCacheState
+    : mruActiveStep
+    ? mruActiveStep.cacheState
+    : simulation.mru.initialCacheState;
+
+  const lruDisplayedMetrics = isSnapshotMode
+    ? simulation.lru.finalMetrics
+    : lruActiveStep
+    ? lruActiveStep.stats
+    : zeroMetrics;
+
+  const mruDisplayedMetrics = isSnapshotMode
+    ? simulation.mru.finalMetrics
+    : mruActiveStep
+    ? mruActiveStep.stats
+    : zeroMetrics;
+
+  const stepLabel = isSnapshotMode
+    ? `Final Snapshot (${sequence.length} accesses)`
+    : effectiveIndex === 0
+    ? 'Initial Empty Cache (Step 0)'
+    : `Through Step ${effectiveIndex} of ${sequence.length}`;
+
+  return (
+    <div className="min-h-screen bg-canvas text-ink-primary">
+      {/* Minimalist Stationery Header */}
+      <header className="border-b border-border-subtle bg-surface">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border-strong bg-subtle text-ink-primary">
+              <Layers className="h-4 w-4" aria-hidden="true" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-ink-primary sm:text-lg">
+                CSARCH2 Cache Memory Simulator
+              </h1>
+              <p className="text-xs text-ink-secondary">
+                Machine 9 &middot; 8-Way Block Set Associative (BSA) &middot; LRU vs. MRU Replacement
+              </p>
+            </div>
+          </div>
+
+          {/* Semantic Legend */}
+          <div
+            className="flex flex-wrap items-center gap-2 text-xs"
+            aria-label="Cache Event Legend"
+          >
+            <span className="inline-flex items-center gap-1.5 rounded border border-status-hit/30 bg-status-hit-bg px-2 py-0.5 font-medium text-status-hit">
+              <span className="h-2 w-2 rounded-full bg-status-hit" aria-hidden="true" />
+              Hit
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded border border-status-miss/30 bg-status-miss-bg px-2 py-0.5 font-medium text-status-miss">
+              <span className="h-2 w-2 rounded-full bg-status-miss" aria-hidden="true" />
+              Miss / Load
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded border border-status-evict/30 bg-status-evict-bg px-2 py-0.5 font-medium text-status-evict">
+              <span className="h-2 w-2 rounded-full bg-status-evict" aria-hidden="true" />
+              Evicted Slot
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Workbench */}
+      <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-5 sm:px-6">
+        {/* 1. Configuration & Playback Panel */}
+        <ConfigPanel
+          config={config}
+          partitioning={partitioning}
+          activePreset={activePreset}
+          randomSeed={randomSeed}
+          rawSequence={rawSequence}
+          sequenceError={sequenceError}
+          sequenceLength={sequence.length}
+          viewMode={viewMode}
+          currentStepIndex={currentStepIndex}
+          isPlaying={isPlaying}
+          playbackSpeedMs={playbackSpeedMs}
+          onConfigChange={handleConfigChange}
+          onSelectPreset={handleSelectPreset}
+          onRerollRandom={handleRerollRandom}
+          onRawSequenceChange={handleRawSequenceChange}
+          onViewModeChange={handleViewModeChange}
+          onTogglePlay={handleTogglePlay}
+          onStepTo={handleStepTo}
+          onSpeedChange={setPlaybackSpeedMs}
+        />
+
+        {/* 2. Side-by-Side Comparison Metrics */}
+        <ComparisonStats
+          lruMetrics={lruDisplayedMetrics}
+          mruMetrics={mruDisplayedMetrics}
+          config={config}
+          stepLabel={stepLabel}
+        />
+
+        {/* 3. Visual Cache Memory Grids (LRU vs MRU) */}
+        <section aria-label="Visual Cache Memory Grids" className="space-y-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold tracking-tight text-ink-primary">
+              Cache Memory Grids (Set 0 &ndash; Set {partitioning.numSets - 1}, Ways 0 &ndash; 7)
+            </h2>
+            <p className="font-mono text-[11px] text-ink-muted">
+              Cell fields: V (Valid bit) &middot; A (Age counter) &middot; B (MM Block #) &middot; T (Tag)
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+            <CacheGrid
+              policy="LRU"
+              cacheState={lruDisplayedCache}
+              activeStep={lruActiveStep}
+              highlightActive={!isSnapshotMode}
+            />
+            <CacheGrid
+              policy="MRU"
+              cacheState={mruDisplayedCache}
+              activeStep={mruActiveStep}
+              highlightActive={!isSnapshotMode}
+            />
+          </div>
+        </section>
+
+        {/* 4. Text Trace Log (Available in Both Modes) */}
+        <TraceLog
+          lruResult={simulation.lru}
+          mruResult={simulation.mru}
+          config={config}
+          partitioning={partitioning}
+          viewMode={viewMode}
+          currentStepIndex={currentStepIndex}
+          onSelectStep={(step) => {
+            if (viewMode === 'snapshot') {
+              setViewMode('step-by-step');
+            }
+            setIsPlaying(false);
+            setCurrentStepIndex(step);
+          }}
+        />
+      </main>
+    </div>
+  );
+};
+
+export default App;
