@@ -1,6 +1,7 @@
 export type ReadPolicy = 'non-load-through' | 'load-through';
 export type ReplacementPolicy = 'LRU' | 'MRU';
 export type ViewMode = 'step-by-step' | 'snapshot';
+export type StepAction = 'HIT' | 'COLD_LOAD' | 'EVICT';
 
 export interface SimulationConfig {
   /** Block size B in words (power of 2, minimum 2) */
@@ -60,10 +61,16 @@ export interface CacheStepSnapshot {
   tag: number;
   /** Cache lookup result */
   outcome: 'HIT' | 'MISS';
+  /** Granular transition action for UI telemetry and diagrams */
+  action: StepAction;
   /** Way index (0..7) that matched or received the loaded block */
   wayIndex: number;
   /** Evicted block address if a full set required replacement, else null */
   evictedBlock: number | null;
+  /** Age of the evicted block at the moment of replacement, else null */
+  evictedAge: number | null;
+  /** Previous age of the matched block prior to a cache hit, else null */
+  previousAge: number | null;
   /** Incrementing age timestamp assigned on this access */
   age: number;
   /** Deep-copied snapshot of all sets and ways after this access */
