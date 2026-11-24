@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import type { SimulationConfig, SimulationMetrics } from '../engine/types';
 
 interface ComparisonStatsProps {
@@ -41,7 +41,7 @@ export const ComparisonStats: React.FC<ComparisonStatsProps> = ({
     ? 'Awaiting trace step'
     : amatDeltaAbs < 0.005
     ? 'AMAT tie (0.00 ns delta)'
-    : `${lruLeadsAmat ? 'LRU' : 'MRU'} leads by ${amatDeltaAbs.toFixed(2)} ns AMAT`;
+    : `${lruLeadsAmat ? 'LRU' : 'MRU'} faster by ${amatDeltaAbs.toFixed(2)} ns AMAT`;
 
   const formatSigned = (val: number, suffix = '', decimals = 2) => {
     if (!hasAccesses) return '—';
@@ -152,48 +152,44 @@ export const ComparisonStats: React.FC<ComparisonStatsProps> = ({
   return (
     <section
       aria-label="Side-by-Side Comparison Metrics"
-      className="overflow-hidden rounded-lg border border-border-subtle bg-surface"
+      className="border-t border-border-subtle bg-surface"
     >
-      {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-subtle/45 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-ink-secondary" aria-hidden="true" />
-          <h2 className="text-sm font-semibold tracking-tight text-ink-primary">
-            Performance Comparison — LRU vs. MRU
+      {/* Band Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-subtle/40 px-4 py-2.5">
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-secondary">
+            Performance Ledger — LRU vs. MRU
           </h2>
+          <span className="font-mono text-[11px] tabular-nums text-ink-muted">{stepLabel}</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 font-mono text-[11px] tabular-nums">
-          <span
-            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-semibold ${
-              lruLeadsAmat || mruLeadsAmat
-                ? 'border border-status-hit-border bg-status-hit-bg text-status-hit'
-                : 'text-ink-secondary'
-            }`}
-          >
-            {(lruLeadsAmat || mruLeadsAmat) && (
-              <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-            )}
-            {deltaHeadline}
-          </span>
-          <span className="text-border-strong">&middot;</span>
-          <span className="text-ink-secondary">{stepLabel}</span>
-        </div>
+        <span
+          className={`inline-flex items-center gap-1 rounded-[2px] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums ${
+            lruLeadsAmat || mruLeadsAmat
+              ? 'border border-status-hit-border bg-status-hit-bg text-status-hit'
+              : 'text-ink-secondary'
+          }`}
+        >
+          {(lruLeadsAmat || mruLeadsAmat) && (
+            <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+          )}
+          {deltaHeadline}
+        </span>
       </div>
 
-      {/* Hit Rate Visual Ratio Strip */}
-      <div className="grid grid-cols-1 gap-3 border-b border-border-subtle bg-canvas/50 px-4 py-2.5 sm:grid-cols-2">
+      {/* Hit-Rate Visual Comparison Track */}
+      <div className="grid grid-cols-1 gap-4 border-b border-border-subtle bg-canvas/55 px-4 py-2.5 sm:grid-cols-2">
         <div className="space-y-1">
           <div className="flex items-center justify-between font-mono text-[11px] tabular-nums">
             <span className="inline-flex items-center gap-1.5 font-semibold text-ink-primary">
-              <span className="h-2 w-2 rounded-full bg-accent-primary" aria-hidden="true" />
+              <span className="h-2 w-2 rounded-[1px] bg-accent-primary" aria-hidden="true" />
               LRU Hit Rate
             </span>
             <span className={lruLeadsAmat ? 'font-semibold text-status-hit' : 'text-ink-secondary'}>
               {lruHitPct}% ({lruMetrics.hits}/{lruMetrics.totalAccesses})
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle" aria-hidden="true">
+          <div className="h-1.5 w-full bg-subtle" aria-hidden="true">
             <div
               className="h-full bg-accent-primary transition-all duration-200"
               style={{ width: `${Math.min(100, Math.max(0, lruMetrics.hitRate * 100))}%` }}
@@ -204,26 +200,26 @@ export const ComparisonStats: React.FC<ComparisonStatsProps> = ({
         <div className="space-y-1">
           <div className="flex items-center justify-between font-mono text-[11px] tabular-nums">
             <span className="inline-flex items-center gap-1.5 font-semibold text-ink-primary">
-              <span className="h-2 w-2 rounded-full bg-ink-primary" aria-hidden="true" />
+              <span className="h-2 w-2 rounded-[1px] bg-shell" aria-hidden="true" />
               MRU Hit Rate
             </span>
             <span className={mruLeadsAmat ? 'font-semibold text-status-hit' : 'text-ink-secondary'}>
               {mruHitPct}% ({mruMetrics.hits}/{mruMetrics.totalAccesses})
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle" aria-hidden="true">
+          <div className="h-1.5 w-full bg-subtle" aria-hidden="true">
             <div
-              className="h-full bg-ink-primary transition-all duration-200"
+              className="h-full bg-shell transition-all duration-200"
               style={{ width: `${Math.min(100, Math.max(0, mruMetrics.hitRate * 100))}%` }}
             />
           </div>
         </div>
       </div>
 
-      {/* Unified 7-Metric Comparative Table */}
+      {/* Unified 7-Metric Tabular Ledger */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[540px] border-collapse text-left text-xs">
-          <thead className="border-b border-border-subtle bg-subtle/30 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">
+          <thead className="border-b border-border-subtle bg-canvas font-mono text-[10.5px] font-semibold uppercase tracking-wider text-ink-secondary">
             <tr>
               <th scope="col" className="px-4 py-2">
                 Metric
@@ -241,7 +237,7 @@ export const ComparisonStats: React.FC<ComparisonStatsProps> = ({
           </thead>
           <tbody className="divide-y divide-border-subtle/80">
             {rows.map((row) => (
-              <tr key={row.label} className="transition-colors hover:bg-subtle/30">
+              <tr key={row.label} className="transition-colors hover:bg-canvas/60">
                 <th scope="row" className="px-4 py-2 font-medium text-ink-secondary">
                   {row.label}
                 </th>
@@ -272,8 +268,8 @@ export const ComparisonStats: React.FC<ComparisonStatsProps> = ({
         </table>
       </div>
 
-      {/* Integrated Formula Reference Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle bg-subtle/35 px-4 py-2 font-mono text-[11px] tabular-nums text-ink-muted">
+      {/* Formula Reference Footer */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle bg-canvas/70 px-4 py-2 font-mono text-[11px] tabular-nums text-ink-muted">
         <span>
           {config.readPolicy === 'non-load-through'
             ? `Non-Load-Through: M = Tc + (B·Tm) + Tc = ${lruMetrics.missPenalty.toFixed(2)} ns`

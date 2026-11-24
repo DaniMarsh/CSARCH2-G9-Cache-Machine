@@ -4,11 +4,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"IBM Plex Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Public Sans"', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
+        shell: 'var(--shell-bg)',
+        'shell-elevated': 'var(--shell-elevated)',
+        'shell-border': 'var(--shell-border)',
+        'shell-ink': 'var(--shell-ink)',
+        'shell-muted': 'var(--shell-muted)',
         canvas: 'var(--bg-canvas)',
+        rail: 'var(--bg-rail)',
         surface: 'var(--bg-surface)',
         subtle: 'var(--bg-subtle)',
         hover: 'var(--bg-hover)',
@@ -19,6 +25,7 @@ export default {
         'ink-muted': 'var(--ink-muted)',
         'accent-primary': 'var(--accent-primary)',
         'accent-soft': 'var(--accent-soft)',
+        'accent-border': 'var(--accent-border)',
         'status-hit': 'var(--status-hit)',
         'status-hit-bg': 'var(--status-hit-bg)',
         'status-hit-border': 'var(--status-hit-border)',
@@ -36,9 +43,6 @@ export default {
         'ds-4': 'var(--space-4)',
         'ds-5': 'var(--space-5)',
         'ds-6': 'var(--space-6)',
-      },
-      boxShadow: {
-        card: '0 1px 2px rgba(26, 24, 22, 0.04)',
       },
     },
   },

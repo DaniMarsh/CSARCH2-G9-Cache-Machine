@@ -210,9 +210,9 @@ export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
         {/* Top Dimension Chain: Timing Hierarchy */}
         <g fontFamily="JetBrains Mono, monospace" fontSize="9.5" fill="var(--ink-secondary)">
           {/* Extension lines */}
-          <line x1="28" y1="30" x2="28" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" />
-          <line x1="600" y1="30" x2="600" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" />
-          <line x1="832" y1="30" x2="832" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" />
+          <line x1="28" y1="30" x2="28" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" vectorEffect="non-scaling-stroke" />
+          <line x1="600" y1="30" x2="600" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" vectorEffect="non-scaling-stroke" />
+          <line x1="832" y1="30" x2="832" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" vectorEffect="non-scaling-stroke" />
 
           {/* Dimension line 1: CPU -> Cache boundary */}
           <line
@@ -224,10 +224,11 @@ export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
             strokeWidth="0.75"
             markerStart="url(#dd-arrow-ink)"
             markerEnd="url(#dd-arrow-ink)"
+            vectorEffect="non-scaling-stroke"
           />
           <rect x="232" y="29" width="164" height="17" fill="var(--bg-surface)" rx="2" />
           <text x="314" y="41" textAnchor="middle" fill="var(--ink-primary)" fontWeight="600">
-            ON-CHIP · HIT TIME Tc = {config.cacheAccessTime}ns
+            ON-CHIP · Tc = {config.cacheAccessTime} ns
           </text>
 
           {/* Dimension line 2: Main Memory boundary */}
@@ -240,10 +241,11 @@ export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
             strokeWidth="0.75"
             markerStart="url(#dd-arrow-ink)"
             markerEnd="url(#dd-arrow-ink)"
+            vectorEffect="non-scaling-stroke"
           />
           <rect x="652" y="29" width="128" height="17" fill="var(--bg-surface)" rx="2" />
           <text x="716" y="41" textAnchor="middle" fill="var(--ink-primary)" fontWeight="600">
-            MAIN MEM Tm = {config.memoryAccessTime}ns
+            MAIN MEM · Tm = {config.memoryAccessTime} ns
           </text>
         </g>
 
@@ -449,7 +451,8 @@ export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
             fontWeight="600"
             fill="var(--ink-primary)"
           >
-            n = {config.cacheBlocks} BLKS ({partitioning.numSets} SETS &times; 8W)
+            n = {config.cacheBlocks} BLKS ({partitioning.numSets}{' '}
+            {partitioning.numSets === 1 ? 'SET' : 'SETS'} &times; 8W)
           </text>
           <text
             x="513"
@@ -729,8 +732,8 @@ export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
             fill={isLoadThrough ? 'var(--accent-primary)' : 'var(--ink-primary)'}
           >
             {isLoadThrough
-              ? '[ACTIVE] LOAD-THROUGH BYPASS: WORD FORWARDED TO CPU IN PARALLEL'
-              : '[INACTIVE BYPASS] NON-LOAD-THROUGH: FULL BLOCK LOADS TO CACHE FIRST'}
+              ? '[ACTIVE] LOAD-THROUGH: WORD BYPASS TO CPU'
+              : '[INACTIVE] NON-LOAD-THROUGH: BLOCK FILL FIRST'}
           </text>
           <text
             x="430"

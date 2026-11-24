@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, GitCompareArrows, Info } from 'lucide-react';
+import { ArrowRight, GitCompareArrows } from 'lucide-react';
 import type { CacheStepSnapshot, ReplacementPolicy } from '../engine/types';
 
 interface StepCalloutBannerProps {
@@ -36,12 +36,12 @@ function badgeForAction(action: CacheStepSnapshot['action']): {
   }
   if (action === 'COLD_LOAD') {
     return {
-      label: 'MISS · LOAD',
+      label: 'LOAD',
       classes: 'border-status-miss-border bg-status-miss-bg text-status-miss',
     };
   }
   return {
-    label: 'MISS · EVICT',
+    label: 'EVICT',
     classes: 'border-status-evict-border bg-status-evict-bg text-status-evict',
   };
 }
@@ -66,27 +66,24 @@ export const StepCalloutBanner: React.FC<StepCalloutBannerProps> = ({
     <div
       aria-label="Current Step Explanation"
       aria-live="polite"
-      className="border-t border-border-subtle bg-canvas/55"
+      className="step-callout border-t border-border-subtle bg-surface"
     >
       {!lruStep || !mruStep ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
-          <div className="flex items-center gap-2 text-xs text-ink-secondary">
-            <Info className="h-3.5 w-3.5 shrink-0 text-accent-primary" aria-hidden="true" />
-            <span>
-              <strong className="font-semibold text-ink-primary">
-                Step 0 — Initial Empty Cache.
-              </strong>{' '}
-              Press <strong className="text-ink-primary">Play</strong> or{' '}
-              <kbd className="rounded border border-border-strong bg-surface px-1 py-0.5 font-mono text-[10px]">
-                Space
-              </kbd>{' '}
-              /{' '}
-              <kbd className="rounded border border-border-strong bg-surface px-1 py-0.5 font-mono text-[10px]">
-                &rarr;
-              </kbd>{' '}
-              to step through the trace.
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs text-ink-secondary">
+          <span>
+            <strong className="font-semibold text-ink-primary">
+              Step 0 — Initial Empty Cache.
+            </strong>{' '}
+            Press <strong className="text-ink-primary">Play</strong> or use{' '}
+            <kbd className="rounded-[2px] border border-border-strong bg-rail px-1 py-0.5 font-mono text-[10px] text-ink-primary">
+              Space
+            </kbd>{' '}
+            /{' '}
+            <kbd className="rounded-[2px] border border-border-strong bg-rail px-1 py-0.5 font-mono text-[10px] text-ink-primary">
+              &rarr;
+            </kbd>{' '}
+            to step through the trace.
+          </span>
           {nextBlockPreview !== null && (
             <span className="inline-flex items-center gap-1 font-mono text-[11px] tabular-nums text-ink-secondary">
               Next <ArrowRight className="h-3 w-3 text-ink-muted" aria-hidden="true" />{' '}
@@ -96,10 +93,9 @@ export const StepCalloutBanner: React.FC<StepCalloutBannerProps> = ({
         </div>
       ) : (
         <div>
-          {/* Compact Step Context Strip */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/80 px-4 py-1.5 font-mono text-[11px] tabular-nums">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/80 bg-subtle/45 px-4 py-1.5 font-mono text-[11px] tabular-nums">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded bg-ink-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              <span className="rounded-[2px] bg-shell px-1.5 py-0.5 text-[10px] font-semibold text-shell-ink">
                 STEP {lruStep.step}/{totalSteps}
               </span>
               <span className="text-ink-primary">
@@ -120,7 +116,7 @@ export const StepCalloutBanner: React.FC<StepCalloutBannerProps> = ({
             </div>
 
             {diverged ? (
-              <span className="inline-flex items-center gap-1 rounded border border-accent-primary/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent-primary">
+              <span className="inline-flex items-center gap-1 rounded-[2px] border border-accent-border bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent-primary">
                 <GitCompareArrows className="h-3 w-3" aria-hidden="true" />
                 Policies Diverged
               </span>
@@ -129,12 +125,11 @@ export const StepCalloutBanner: React.FC<StepCalloutBannerProps> = ({
             )}
           </div>
 
-          {/* Concise LRU vs MRU Reasoning Row */}
-          <div className="grid grid-cols-1 divide-y divide-border-subtle/80 bg-surface md:grid-cols-2 md:divide-x md:divide-y-0">
+          <div className="grid grid-cols-1 divide-y divide-border-subtle/80 md:grid-cols-2 md:divide-x md:divide-y-0">
             <div className="flex items-start gap-2 px-4 py-2 text-xs">
               {lruBadge && (
                 <span
-                  className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${lruBadge.classes}`}
+                  className={`mt-0.5 shrink-0 rounded-[2px] border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${lruBadge.classes}`}
                 >
                   LRU &middot; {lruBadge.label}
                 </span>
@@ -145,7 +140,7 @@ export const StepCalloutBanner: React.FC<StepCalloutBannerProps> = ({
             <div className="flex items-start gap-2 px-4 py-2 text-xs">
               {mruBadge && (
                 <span
-                  className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${mruBadge.classes}`}
+                  className={`mt-0.5 shrink-0 rounded-[2px] border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${mruBadge.classes}`}
                 >
                   MRU &middot; {mruBadge.label}
                 </span>

@@ -34,7 +34,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
   const barW = 780;
   const minSegW = 112;
   const flexW = barW - minSegW * 3;
-  const totalWeight = tagBits + setBits + wordBits;
+  const totalWeight = Math.max(1, tagBits + setBits + wordBits);
 
   const tagW = minSegW + Math.round((tagBits / totalWeight) * flexW);
   const setW = minSegW + Math.round((setBits / totalWeight) * flexW);
@@ -193,7 +193,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             fontWeight="700"
             fill="var(--ink-primary)"
           >
-            TOTAL ADDRESS = log2(1024 &times; {config.blockSize}) = {totalAddressBits} BITS
+            ADDR WIDTH = log2(1024&middot;B) = {totalAddressBits} BITS
           </text>
         </g>
 
@@ -301,6 +301,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             fill={hasActiveStep ? 'var(--accent-soft)' : 'var(--bg-surface)'}
             stroke={hasActiveStep ? 'var(--accent-primary)' : 'var(--ink-primary)'}
             strokeWidth={hasActiveStep ? '1.8' : '1.5'}
+            vectorEffect="non-scaling-stroke"
           />
           <text
             x={tagMid}
@@ -350,6 +351,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             }
             strokeDasharray={setBits === 0 ? '4 3' : undefined}
             strokeWidth={hasActiveStep && setBits > 0 ? '1.8' : '1.5'}
+            vectorEffect="non-scaling-stroke"
           />
           {setBits === 0 ? (
             <>
@@ -424,6 +426,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             fillOpacity={hasActiveStep ? '0.65' : '0.35'}
             stroke="var(--ink-primary)"
             strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
           />
           <text
             x={wordMid}
