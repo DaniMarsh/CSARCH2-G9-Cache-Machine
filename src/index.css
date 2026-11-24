@@ -2,32 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-/* UI/UX Pro Max Design Tokens — Minimalist Warm Stationery Technical Workbench */
+/* UI/UX Pro Max Design System — Minimalist Warm Stationery Technical Workbench */
 :root {
-  --bg-canvas: #F7F5F0;
+  /* Paper & Surface Hierarchy */
+  --bg-canvas: #F8F6F1;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #F1EDE6;
-  --bg-hover: #EBE5DB;
+  --bg-subtle: #F2EFE9;
+  --bg-hover: #EAE5DC;
 
-  --border-subtle: #E6E0D6;
-  --border-strong: #CFC7BA;
+  /* Crisp Neutral Hairlines */
+  --border-subtle: #E4DED3;
+  --border-strong: #CCC4B6;
 
-  --ink-primary: #1C1917;
-  --ink-secondary: #57534E;
-  --ink-muted: #78716C;
+  /* High-Contrast Ink Scale (>= 4.5:1 WCAG AA on #FFFFFF) */
+  --ink-primary: #1A1816;
+  --ink-secondary: #524D47;
+  --ink-muted: #716A61;
 
+  /* Primary Technical Accent */
   --accent-primary: #1D4ED8;
   --accent-soft: #EFF6FF;
 
+  /* Semantic Cache Event Tokens */
   --status-hit: #047857;
   --status-hit-bg: #ECFDF5;
+  --status-hit-border: #A7F3D0;
 
   --status-miss: #B45309;
   --status-miss-bg: #FFFBEB;
+  --status-miss-border: #FDE68A;
+
+  --status-load: #1D4ED8;
+  --status-load-bg: #EFF6FF;
+  --status-load-border: #BFDBFE;
 
   --status-evict: #BE123C;
   --status-evict-bg: #FFF1F2;
+  --status-evict-border: #FECDD3;
 
+  /* Density-7 Technical Workbench Spacing Scale */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -37,6 +50,11 @@
 }
 
 @layer base {
+  html {
+    color-scheme: light;
+    scroll-padding-top: 4rem;
+  }
+
   body {
     font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-canvas);
@@ -47,7 +65,8 @@
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
-  textarea:focus-visible {
+  textarea:focus-visible,
+  summary:focus-visible {
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
@@ -57,14 +76,39 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  .stationery-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 1px 2px rgba(26, 24, 22, 0.04);
+  }
 }
 
-/* Subtle cell highlight animation for active simulation step */
+/* Subtle custom scrollbars for scrollable trace logs */
+.trace-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.trace-scroll::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+
+.trace-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+.trace-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-muted);
+}
+
+/* Crisp cache-cell transition feedback */
 @keyframes cellPulse {
   0% {
-    transform: scale(0.985);
+    transform: scale(0.98);
   }
-  50% {
+  55% {
     transform: scale(1.015);
   }
   100% {
@@ -80,7 +124,10 @@
   .animate-cell-pulse {
     animation: none !important;
   }
-  * {
+  *,
+  *::before,
+  *::after {
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
