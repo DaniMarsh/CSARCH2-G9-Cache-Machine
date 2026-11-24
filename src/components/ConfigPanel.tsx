@@ -349,7 +349,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               onChange={(e) => onRawSequenceChange(e.target.value)}
               spellCheck={false}
               placeholder="e.g. 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1..."
-              className={`w-full resize-y rounded-md border bg-surface px-3 py-2 font-mono text-xs leading-relaxed tabular-nums text-ink-primary transition-colors ${
+              className={`trace-scroll w-full resize-y rounded-md border bg-surface px-3 py-2 font-mono text-xs leading-relaxed tabular-nums text-ink-primary transition-colors ${
                 sequenceError
                   ? 'border-status-evict bg-status-evict-bg/30'
                   : 'border-border-strong focus:border-accent-primary'
