@@ -2,7 +2,6 @@
 
 <!-- impeccable:design-map -->
 Map: src/index.css
-Full: .impeccable/design-full.md (read a section when you need its detail)
 
 ## Colors
 
