@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Layers } from 'lucide-react';
+import { Columns2, Layers, Rows2 } from 'lucide-react';
 import {
   calculateMetrics,
   computeAddressPartitioning,
@@ -44,6 +44,9 @@ export const App: React.FC = () => {
   const [sequenceError, setSequenceError] = useState<string | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>('step-by-step');
+  const [gridLayout, setGridLayout] = useState<'side-by-side' | 'stacked' | 'lru' | 'mru'>(
+    'side-by-side'
+  );
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playbackSpeedMs, setPlaybackSpeedMs] = useState<number>(450);
@@ -288,29 +291,79 @@ export const App: React.FC = () => {
         />
 
         {/* 3. Visual Cache Memory Grids (LRU vs MRU) */}
-        <section aria-label="Visual Cache Memory Grids" className="space-y-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold tracking-tight text-ink-primary">
-              Cache Memory Grids (Set 0 &ndash; Set {partitioning.numSets - 1}, Ways 0 &ndash; 7)
-            </h2>
-            <p className="font-mono text-[11px] text-ink-muted">
-              Cell fields: V (Valid bit) &middot; A (Age counter) &middot; B (MM Block #) &middot; T (Tag)
-            </p>
+        <section aria-label="Visual Cache Memory Grids" className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold tracking-tight text-ink-primary">
+                Cache Memory Grids (Set 0 &ndash; Set {partitioning.numSets - 1}, Ways 0 &ndash; 7)
+              </h2>
+              <p className="font-mono text-[11px] text-ink-muted">
+                Cell fields: V (Valid bit) &middot; A (Age) &middot; B (MM Block #) &middot; T (Tag)
+              </p>
+            </div>
+
+            {/* Grid Layout Mode Toggle */}
+            <div
+              role="radiogroup"
+              aria-label="Cache Grid Layout"
+              className="inline-flex rounded-md border border-border-subtle bg-subtle p-0.5 text-xs"
+            >
+              {(
+                [
+                  { id: 'side-by-side', label: 'Side-by-Side', icon: Columns2 },
+                  { id: 'stacked', label: 'Stacked', icon: Rows2 },
+                  { id: 'lru', label: 'LRU Only', icon: null },
+                  { id: 'mru', label: 'MRU Only', icon: null },
+                ] as const
+              ).map((opt) => {
+                const active = gridLayout === opt.id;
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setGridLayout(opt.id)}
+                    className={`inline-flex items-center gap-1 rounded px-2.5 py-1 font-medium transition-colors ${
+                      active
+                        ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
+                        : 'text-ink-secondary hover:text-ink-primary'
+                    }`}
+                  >
+                    {Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-            <CacheGrid
-              policy="LRU"
-              cacheState={lruDisplayedCache}
-              activeStep={lruActiveStep}
-              highlightActive={!isSnapshotMode}
-            />
-            <CacheGrid
-              policy="MRU"
-              cacheState={mruDisplayedCache}
-              activeStep={mruActiveStep}
-              highlightActive={!isSnapshotMode}
-            />
+          <div
+            className={
+              gridLayout === 'side-by-side'
+                ? 'grid grid-cols-1 gap-4 xl:grid-cols-2'
+                : 'grid grid-cols-1 gap-4'
+            }
+          >
+            {gridLayout !== 'mru' && (
+              <CacheGrid
+                policy="LRU"
+                cacheState={lruDisplayedCache}
+                activeStep={lruActiveStep}
+                highlightActive={!isSnapshotMode}
+                compact={gridLayout === 'side-by-side'}
+              />
+            )}
+            {gridLayout !== 'lru' && (
+              <CacheGrid
+                policy="MRU"
+                cacheState={mruDisplayedCache}
+                activeStep={mruActiveStep}
+                highlightActive={!isSnapshotMode}
+                compact={gridLayout === 'side-by-side'}
+              />
+            )}
           </div>
         </section>
 

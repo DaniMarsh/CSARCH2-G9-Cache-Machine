@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, FileText, Table as TableIcon, Terminal } from 'lucide-react';
+import { Check, Copy, Download, FileText, Table as TableIcon, Terminal } from 'lucide-react';
 import { formatTraceAsText } from '../engine/simulator';
 import type {
   AddressPartitioning,
@@ -30,6 +30,7 @@ export const TraceLog: React.FC<TraceLogProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<ReplacementPolicy>('LRU');
   const [displayFormat, setDisplayFormat] = useState<'table' | 'raw'>('table');
+  const [copied, setCopied] = useState<boolean>(false);
   const activeRowRef = useRef<HTMLTableRowElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -62,6 +63,16 @@ export const TraceLog: React.FC<TraceLogProps> = ({
       }
     }
   }, [currentStepIndex, viewMode, displayFormat, activeTab]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(rawText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard API unavailable in non-secure contexts
+    }
+  };
 
   const handleDownload = () => {
     const blob = new Blob([rawText], { type: 'text/plain;charset=utf-8' });
@@ -156,6 +167,25 @@ export const TraceLog: React.FC<TraceLogProps> = ({
             </button>
           </div>
 
+          {/* Copy Trace */}
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-border-strong hover:bg-hover hover:text-ink-primary"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-status-hit" aria-hidden="true" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                Copy
+              </>
+            )}
+          </button>
+
           {/* Download Trace (.txt) */}
           <button
             type="button"
@@ -172,7 +202,7 @@ export const TraceLog: React.FC<TraceLogProps> = ({
       {displayFormat === 'table' ? (
         <div
           ref={scrollContainerRef}
-          className="max-h-[380px] overflow-auto"
+          className="trace-scroll max-h-[380px] overflow-auto"
         >
           <table className="w-full min-w-[660px] border-collapse text-left font-mono text-xs tabular-nums">
             <thead className="sticky top-0 z-10 border-b border-border-subtle bg-subtle text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">
@@ -265,7 +295,7 @@ export const TraceLog: React.FC<TraceLogProps> = ({
           </table>
         </div>
       ) : (
-        <pre className="max-h-[380px] overflow-auto bg-canvas/60 p-4 font-mono text-xs leading-relaxed tabular-nums text-ink-primary">
+        <pre className="trace-scroll max-h-[380px] overflow-auto bg-canvas/70 p-4 font-mono text-xs leading-relaxed tabular-nums text-ink-primary">
           {rawText}
         </pre>
       )}

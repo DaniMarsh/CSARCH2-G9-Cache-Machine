@@ -10,15 +10,15 @@ Generated via **UI/UX Pro Max** design intelligence (matched against `styles.csv
 ## 2. Color Tokens (CSS Variables)
 | Token | Hex | Role |
 |---|---|---|
-| `--bg-canvas` | `#F7F5F0` | Warm stationery page background |
+| `--bg-canvas` | `#F8F6F1` | Warm stationery page background |
 | `--bg-surface` | `#FFFFFF` | Elevated cards, cache grids, trace panel |
-| `--bg-subtle` | `#F1EDE6` | Table headers, secondary panels, inactive pills |
-| `--bg-hover` | `#EBE5DB` | Interactive hover surface |
-| `--border-subtle` | `#E6E0D6` | Default 1px structural hairline |
-| `--border-strong` | `#CFC7BA` | Active control / input border |
-| `--ink-primary` | `#1C1917` | Primary headings & values (>14:1 on white) |
-| `--ink-secondary` | `#57534E` | Secondary labels & subtitles (>6.8:1 on white) |
-| `--ink-muted` | `#78716C` | Technical metadata & empty slots (>4.6:1 on white) |
+| `--bg-subtle` | `#F2EFE9` | Table headers, secondary panels, inactive pills |
+| `--bg-hover` | `#EAE5DC` | Interactive hover surface |
+| `--border-subtle` | `#E4DED3` | Default 1px structural hairline |
+| `--border-strong` | `#CCC4B6` | Active control / input border |
+| `--ink-primary` | `#1A1816` | Primary headings & values (>15:1 on white) |
+| `--ink-secondary` | `#524D47` | Secondary labels & subtitles (>7.8:1 on white) |
+| `--ink-muted` | `#716A61` | Technical metadata & empty slots (>5.1:1 on white) |
 | `--accent-primary` | `#1D4ED8` | Primary interactive actions, active focus ring |
 | `--accent-soft` | `#EFF6FF` | Active set highlight / selected state tint |
 | `--status-hit` | `#047857` | Cache Hit text/border (emerald-700) |
