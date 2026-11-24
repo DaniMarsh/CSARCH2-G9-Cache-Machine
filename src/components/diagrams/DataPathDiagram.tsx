@@ -48,9 +48,9 @@ export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
     : 'var(--border-strong)';
 
   return (
-    <div className="rounded-md border border-border-subtle bg-surface p-3">
+    <div className="p-4">
       {/* Drawing Sheet Header Strip */}
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-2 font-mono text-[11px] tabular-nums">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] tabular-nums">
         <div className="flex items-center gap-2">
           <span className="rounded border border-ink-primary px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-ink-primary">
             DWG-01

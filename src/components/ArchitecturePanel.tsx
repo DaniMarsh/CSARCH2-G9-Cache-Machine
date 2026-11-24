@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Compass } from 'lucide-react';
+import { calculateMissPenalty } from '../engine/simulator';
 import type {
   AddressPartitioning,
   CacheStepSnapshot,
@@ -23,22 +24,28 @@ export const ArchitecturePanel: React.FC<ArchitecturePanelProps> = ({
   mruStep,
   isSnapshotMode,
 }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
   const policyLabel =
     config.readPolicy === 'load-through' ? 'Load-Through' : 'Non-Load-Through';
+  const missPenalty = calculateMissPenalty(
+    config.blockSize,
+    config.readPolicy,
+    config.cacheAccessTime,
+    config.memoryAccessTime
+  );
 
   return (
     <section
       aria-label="Architecture and Address Mapping Diagrams"
-      className="overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-card"
+      className="overflow-hidden rounded-lg border border-border-subtle bg-surface"
     >
       <button
         type="button"
         aria-expanded={isOpen}
         aria-controls="architecture-diagrams-body"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full flex-wrap items-center justify-between gap-2 bg-subtle/60 px-4 py-3 text-left transition-colors hover:bg-subtle"
+        className="flex w-full flex-wrap items-center justify-between gap-2 bg-subtle/45 px-4 py-2.5 text-left transition-colors hover:bg-subtle/80"
       >
         <div className="flex items-center gap-2">
           {isOpen ? (
@@ -48,26 +55,35 @@ export const ArchitecturePanel: React.FC<ArchitecturePanelProps> = ({
           )}
           <Compass className="h-4 w-4 text-ink-secondary" aria-hidden="true" />
           <h2 className="text-sm font-semibold tracking-tight text-ink-primary">
-            Architecture &amp; Address Mapping
+            Architecture &amp; Address Mapping Diagrams
           </h2>
+          <span className="hidden text-xs text-ink-muted sm:inline">
+            (DWG-01 Data Path &middot; DWG-02 Bit Partition)
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] tabular-nums text-ink-secondary">
-          <span className="rounded border border-border-subtle bg-surface px-2 py-0.5">
-            {policyLabel}
+        <div className="flex flex-wrap items-center gap-3 font-mono text-[11px] tabular-nums text-ink-secondary">
+          <span>{policyLabel}</span>
+          <span className="text-border-strong">&middot;</span>
+          <span>
+            Tag <strong className="text-ink-primary">{partitioning.tagBits}b</strong> / Set{' '}
+            <strong className="text-ink-primary">{partitioning.setBits}b</strong> / Word{' '}
+            <strong className="text-ink-primary">{partitioning.wordBits}b</strong>
           </span>
-          <span className="rounded border border-border-subtle bg-surface px-2 py-0.5">
-            Tag {partitioning.tagBits}b &middot; Set {partitioning.setBits}b &middot; Word{' '}
-            {partitioning.wordBits}b
+          <span className="text-border-strong">&middot;</span>
+          <span>
+            M = <strong className="text-ink-primary">{missPenalty.toFixed(2)} ns</strong>
           </span>
-          <span className="text-ink-muted">{isOpen ? 'Hide' : 'Expand'}</span>
+          <span className="font-sans text-xs font-medium text-accent-primary">
+            {isOpen ? 'Hide' : 'Show diagrams'}
+          </span>
         </div>
       </button>
 
       {isOpen && (
         <div
           id="architecture-diagrams-body"
-          className="grid grid-cols-1 gap-4 border-t border-border-subtle bg-canvas/40 p-4 xl:grid-cols-2"
+          className="grid grid-cols-1 divide-y divide-border-subtle border-t border-border-subtle bg-surface xl:grid-cols-2 xl:divide-x xl:divide-y-0"
         >
           <DataPathDiagram
             config={config}

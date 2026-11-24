@@ -26,23 +26,40 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
   const { tagBits, setBits, wordBits, totalAddressBits, numSets } = partitioning;
   const hasActiveStep = !isSnapshotMode && activeStep !== null;
 
-  // Compute proportional horizontal layout across [40..820] (780px total bar width)
+  // Proportional horizontal bar [40..820] (780px total) with a 112px floor per field
+  // so 0-bit/1-bit Set and 1-bit Word fields never clip labels or dimension pills.
   const barX = 40;
   const barY = 92;
   const barH = 54;
   const barW = 780;
+  const minSegW = 112;
+  const flexW = barW - minSegW * 3;
+  const totalWeight = tagBits + setBits + wordBits;
 
-  // Reserve a readable minimum slot for Set when setBits === 0 (n = 8, 1 set)
-  const effectiveSetVisualWeight = setBits === 0 ? 1.5 : setBits;
-  const totalVisualWeight = tagBits + effectiveSetVisualWeight + wordBits;
-
-  const tagW = Math.round((tagBits / totalVisualWeight) * barW);
-  const setW = Math.round((effectiveSetVisualWeight / totalVisualWeight) * barW);
+  const tagW = minSegW + Math.round((tagBits / totalWeight) * flexW);
+  const setW = minSegW + Math.round((setBits / totalWeight) * flexW);
   const wordW = barW - tagW - setW;
 
   const tagX = barX;
   const setX = tagX + tagW;
   const wordX = setX + setW;
+
+  const tagMid = tagX + tagW / 2;
+  const setMid = setX + setW / 2;
+  const wordMid = wordX + wordW / 2;
+
+  const barBottom = barY + barH;
+  const cardTop = barBottom + 30;
+  const cardH = 34;
+
+  // Fixed lower formula card geometry (3 equal columns across [40..820])
+  const card1X = 40;
+  const card2X = 306;
+  const card3X = 572;
+  const cardW = 248;
+  const card1Mid = card1X + cardW / 2;
+  const card2Mid = card2X + cardW / 2;
+  const card3Mid = card3X + cardW / 2;
 
   const tagMsb = totalAddressBits - 1;
   const tagLsb = setBits + wordBits;
@@ -56,10 +73,22 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
     hasActiveStep && activeStep ? toPaddedBinary(activeStep.setIndex, setBits) : null;
   const wordPlaceholder = 'x'.repeat(wordBits);
 
+  const tagDimLabel = `TAG: ${tagBits}b [${tagMsb}:${tagLsb}]`;
+  const setDimLabel =
+    setBits === 0 ? 'SET: 0b (1 SET)' : `SET: ${setBits}b [${setMsb}:${setLsb}]`;
+  const wordDimLabel = `WORD: ${wordBits}b [${wordMsb}:0]`;
+
+  const pillWidthFor = (label: string, segW: number) =>
+    Math.min(segW - 10, Math.max(76, label.length * 5.6 + 12));
+
+  const tagPillW = pillWidthFor(tagDimLabel, tagW);
+  const setPillW = pillWidthFor(setDimLabel, setW);
+  const wordPillW = pillWidthFor(wordDimLabel, wordW);
+
   return (
-    <div className="rounded-md border border-border-subtle bg-surface p-3">
+    <div className="p-4">
       {/* Drawing Sheet Header Strip */}
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-2 font-mono text-[11px] tabular-nums">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] tabular-nums">
         <div className="flex items-center gap-2">
           <span className="rounded border border-ink-primary px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-ink-primary">
             DWG-02
@@ -87,7 +116,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
 
       {/* Dimensional Bit-Field SVG */}
       <svg
-        viewBox="0 0 860 242"
+        viewBox="0 0 860 252"
         role="img"
         aria-label={`Address bit partition: ${totalAddressBits} total bits split into ${tagBits} Tag bits, ${setBits} Set bits, and ${wordBits} Word offset bits`}
         className="h-auto w-full select-none"
@@ -127,10 +156,10 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
           x="6"
           y="6"
           width="848"
-          height="230"
+          height="240"
           rx="6"
           fill="var(--bg-canvas)"
-          fillOpacity="0.45"
+          fillOpacity="0.55"
           stroke="var(--border-strong)"
           strokeWidth="1"
         />
@@ -156,7 +185,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             markerStart="url(#dd-bp-arrow)"
             markerEnd="url(#dd-bp-arrow)"
           />
-          <rect x="292" y="25" width="276" height="17" rx="2" fill="var(--bg-surface)" />
+          <rect x="286" y="25" width="288" height="17" rx="2" fill="var(--bg-surface)" />
           <text
             x="430"
             y="37"
@@ -169,8 +198,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
         </g>
 
         {/* === SUB-FIELD DIMENSION CHAIN (TAG / SET / WORD) === */}
-        <g fontFamily="JetBrains Mono, monospace" fontSize="9">
-          {/* Interior dividers */}
+        <g fontFamily="JetBrains Mono, monospace" fontSize="8.8">
           <line x1={setX} y1="54" x2={setX} y2={barY - 4} stroke="var(--border-strong)" strokeWidth="0.65" />
           <line x1={wordX} y1="54" x2={wordX} y2={barY - 4} stroke="var(--border-strong)" strokeWidth="0.65" />
 
@@ -186,21 +214,21 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             markerEnd="url(#dd-bp-arrow)"
           />
           <rect
-            x={tagX + tagW / 2 - 48}
+            x={tagMid - tagPillW / 2}
             y="54"
-            width="96"
+            width={tagPillW}
             height="15"
             rx="2"
             fill="var(--bg-surface)"
           />
           <text
-            x={tagX + tagW / 2}
+            x={tagMid}
             y="64.5"
             textAnchor="middle"
             fontWeight="600"
             fill="var(--accent-primary)"
           >
-            TAG: {tagBits}b [{tagMsb}:{tagLsb}]
+            {tagDimLabel}
           </text>
 
           {/* SET span */}
@@ -215,21 +243,21 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             markerEnd="url(#dd-bp-arrow)"
           />
           <rect
-            x={setX + setW / 2 - 44}
+            x={setMid - setPillW / 2}
             y="54"
-            width="88"
+            width={setPillW}
             height="15"
             rx="2"
             fill="var(--bg-surface)"
           />
           <text
-            x={setX + setW / 2}
+            x={setMid}
             y="64.5"
             textAnchor="middle"
             fontWeight="600"
             fill="var(--status-hit)"
           >
-            {setBits === 0 ? 'SET: 0b (1 SET)' : `SET: ${setBits}b [${setMsb}:${setLsb}]`}
+            {setDimLabel}
           </text>
 
           {/* WORD span */}
@@ -244,21 +272,21 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             markerEnd="url(#dd-bp-arrow)"
           />
           <rect
-            x={wordX + wordW / 2 - 48}
+            x={wordMid - wordPillW / 2}
             y="54"
-            width="96"
+            width={wordPillW}
             height="15"
             rx="2"
             fill="var(--bg-surface)"
           />
           <text
-            x={wordX + wordW / 2}
+            x={wordMid}
             y="64.5"
             textAnchor="middle"
             fontWeight="600"
             fill="var(--status-miss)"
           >
-            WORD: {wordBits}b [{wordMsb}:0]
+            {wordDimLabel}
           </text>
         </g>
 
@@ -275,7 +303,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             strokeWidth={hasActiveStep ? '1.8' : '1.5'}
           />
           <text
-            x={tagX + tagW / 2}
+            x={tagMid}
             y={barY + 20}
             textAnchor="middle"
             fontFamily="JetBrains Mono, monospace"
@@ -286,7 +314,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             {hasActiveStep && activeStep ? `TAG = ${activeStep.tag}` : 'TAG FIELD'}
           </text>
           <text
-            x={tagX + tagW / 2}
+            x={tagMid}
             y={barY + 39}
             textAnchor="middle"
             fontFamily="JetBrains Mono, monospace"
@@ -326,27 +354,27 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
           {setBits === 0 ? (
             <>
               <rect
-                x={setX + 6}
-                y={barY + 12}
-                width={Math.max(20, setW - 12)}
-                height={30}
+                x={setX + 10}
+                y={barY + 11}
+                width={setW - 20}
+                height={32}
                 rx="2"
                 fill="var(--bg-surface)"
-                fillOpacity="0.92"
+                fillOpacity="0.94"
               />
               <text
-                x={setX + setW / 2}
+                x={setMid}
                 y={barY + 25}
                 textAnchor="middle"
                 fontFamily="JetBrains Mono, monospace"
-                fontSize="9"
+                fontSize="9.5"
                 fontWeight="700"
                 fill="var(--status-hit)"
               >
                 SET = 0
               </text>
               <text
-                x={setX + setW / 2}
+                x={setMid}
                 y={barY + 38}
                 textAnchor="middle"
                 fontFamily="JetBrains Mono, monospace"
@@ -359,7 +387,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
           ) : (
             <>
               <text
-                x={setX + setW / 2}
+                x={setMid}
                 y={barY + 20}
                 textAnchor="middle"
                 fontFamily="JetBrains Mono, monospace"
@@ -370,7 +398,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
                 {hasActiveStep && activeStep ? `SET = ${activeStep.setIndex}` : 'SET FIELD'}
               </text>
               <text
-                x={setX + setW / 2}
+                x={setMid}
                 y={barY + 39}
                 textAnchor="middle"
                 fontFamily="JetBrains Mono, monospace"
@@ -398,7 +426,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             strokeWidth="1.5"
           />
           <text
-            x={wordX + wordW / 2}
+            x={wordMid}
             y={barY + 20}
             textAnchor="middle"
             fontFamily="JetBrains Mono, monospace"
@@ -409,111 +437,108 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
             WORD OFFSET
           </text>
           <text
-            x={wordX + wordW / 2}
+            x={wordMid}
             y={barY + 39}
             textAnchor="middle"
             fontFamily="JetBrains Mono, monospace"
-            fontSize="11.5"
+            fontSize="11"
             fontWeight="500"
-            letterSpacing="1.2"
+            letterSpacing="0.8"
             fill="var(--ink-secondary)"
           >
             {wordPlaceholder} (0..{config.blockSize - 1})
           </text>
         </g>
 
-        {/* === LOWER FORMULA DERIVATION CALLOUTS === */}
+        {/* === LOWER FORMULA DERIVATION CALLOUTS (ORTHOGONAL ELBOW LEADERS) === */}
         <g fontFamily="JetBrains Mono, monospace" fontSize="9.5">
-          {/* Leader 1: Tag derivation */}
-          <line
-            x1={tagX + tagW / 2}
-            y1={barY + barH}
-            x2={tagX + tagW / 2}
-            y2={barY + barH + 22}
+          {/* Elbow Leader 1: TAG segment -> TAG formula box */}
+          <path
+            d={`M ${tagMid} ${barBottom} L ${tagMid} ${barBottom + 10} L ${card1Mid} ${barBottom + 10} L ${card1Mid} ${cardTop}`}
+            fill="none"
             stroke="var(--accent-primary)"
-            strokeWidth="0.9"
+            strokeWidth="1"
           />
-          <circle cx={tagX + tagW / 2} cy={barY + barH} r="2.5" fill="var(--accent-primary)" />
+          <circle cx={tagMid} cy={barBottom} r="2.5" fill="var(--accent-primary)" />
+          <circle cx={card1Mid} cy={cardTop} r="2" fill="var(--accent-primary)" />
           <rect
-            x="40"
-            y={barY + barH + 22}
-            width="248"
-            height="34"
+            x={card1X}
+            y={cardTop}
+            width={cardW}
+            height={cardH}
             rx="3"
             fill="var(--bg-surface)"
             stroke="var(--border-strong)"
             strokeWidth="0.9"
           />
-          <text x="50" y={barY + barH + 36} fontWeight="700" fill="var(--accent-primary)">
+          <text x={card1X + 10} y={cardTop + 14} fontWeight="700" fill="var(--accent-primary)">
             TAG = floor(Block / numSets)
           </text>
-          <text x="50" y={barY + barH + 49} fill="var(--ink-secondary)">
+          <text x={card1X + 10} y={cardTop + 27} fill="var(--ink-secondary)">
             {hasActiveStep && activeStep
               ? `floor(${activeStep.blockAddress} / ${numSets}) = ${activeStep.tag}`
               : `width = ${totalAddressBits} − ${setBits} − ${wordBits} = ${tagBits} bits`}
           </text>
 
-          {/* Leader 2: Set Index derivation */}
-          <line
-            x1={setX + setW / 2}
-            y1={barY + barH}
-            x2={setX + setW / 2}
-            y2={barY + barH + 22}
+          {/* Elbow Leader 2: SET segment -> SET formula box */}
+          <path
+            d={`M ${setMid} ${barBottom} L ${setMid} ${barBottom + 16} L ${card2Mid} ${barBottom + 16} L ${card2Mid} ${cardTop}`}
+            fill="none"
             stroke="var(--status-hit)"
-            strokeWidth="0.9"
+            strokeWidth="1"
           />
-          <circle cx={setX + setW / 2} cy={barY + barH} r="2.5" fill="var(--status-hit)" />
+          <circle cx={setMid} cy={barBottom} r="2.5" fill="var(--status-hit)" />
+          <circle cx={card2Mid} cy={cardTop} r="2" fill="var(--status-hit)" />
           <rect
-            x="306"
-            y={barY + barH + 22}
-            width="248"
-            height="34"
+            x={card2X}
+            y={cardTop}
+            width={cardW}
+            height={cardH}
             rx="3"
             fill="var(--bg-surface)"
             stroke="var(--border-strong)"
             strokeWidth="0.9"
           />
-          <text x="316" y={barY + barH + 36} fontWeight="700" fill="var(--status-hit)">
+          <text x={card2X + 10} y={cardTop + 14} fontWeight="700" fill="var(--status-hit)">
             SET = Block mod numSets
           </text>
-          <text x="316" y={barY + barH + 49} fill="var(--ink-secondary)">
+          <text x={card2X + 10} y={cardTop + 27} fill="var(--ink-secondary)">
             {hasActiveStep && activeStep
               ? `${activeStep.blockAddress} % ${numSets} = Set ${activeStep.setIndex}`
               : `numSets = ${config.cacheBlocks} / 8 = ${numSets} (${setBits}b)`}
           </text>
 
-          {/* Leader 3: Word Offset derivation */}
-          <line
-            x1={wordX + wordW / 2}
-            y1={barY + barH}
-            x2={wordX + wordW / 2}
-            y2={barY + barH + 22}
+          {/* Elbow Leader 3: WORD segment -> WORD formula box */}
+          <path
+            d={`M ${wordMid} ${barBottom} L ${wordMid} ${barBottom + 22} L ${card3Mid} ${barBottom + 22} L ${card3Mid} ${cardTop}`}
+            fill="none"
             stroke="var(--status-miss)"
-            strokeWidth="0.9"
+            strokeWidth="1"
           />
-          <circle cx={wordX + wordW / 2} cy={barY + barH} r="2.5" fill="var(--status-miss)" />
+          <circle cx={wordMid} cy={barBottom} r="2.5" fill="var(--status-miss)" />
+          <circle cx={card3Mid} cy={cardTop} r="2" fill="var(--status-miss)" />
           <rect
-            x="572"
-            y={barY + barH + 22}
-            width="248"
-            height="34"
+            x={card3X}
+            y={cardTop}
+            width={cardW}
+            height={cardH}
             rx="3"
             fill="var(--bg-surface)"
             stroke="var(--border-strong)"
             strokeWidth="0.9"
           />
-          <text x="582" y={barY + barH + 36} fontWeight="700" fill="var(--status-miss)">
+          <text x={card3X + 10} y={cardTop + 14} fontWeight="700" fill="var(--status-miss)">
             WORD = log2(B)
           </text>
-          <text x="582" y={barY + barH + 49} fill="var(--ink-secondary)">
-            log2({config.blockSize}) = {wordBits} bits ({config.blockSize} words/blk)
+          <text x={card3X + 10} y={cardTop + 27} fill="var(--ink-secondary)">
+            log2({config.blockSize}) = {wordBits} {wordBits === 1 ? 'bit' : 'bits'} ({config.blockSize} words/blk)
           </text>
         </g>
 
         {/* Sheet Footer */}
         <text
           x="20"
-          y="224"
+          y="234"
           fontFamily="JetBrains Mono, monospace"
           fontSize="8.5"
           fill="var(--ink-muted)"
@@ -527,7 +552,7 @@ export const BitPartitionDiagram: React.FC<BitPartitionDiagramProps> = ({
         </text>
         <text
           x="840"
-          y="224"
+          y="234"
           textAnchor="end"
           fontFamily="JetBrains Mono, monospace"
           fontSize="8.5"
