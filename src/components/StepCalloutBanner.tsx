@@ -7,6 +7,7 @@ interface StepCalloutBannerProps {
   mruStep: CacheStepSnapshot | null;
   totalSteps: number;
   nextBlockPreview: number | null;
+  presentationMode?: boolean;
 }
 
 function describeDecision(step: CacheStepSnapshot, policy: ReplacementPolicy): string {

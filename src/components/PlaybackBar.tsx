@@ -17,6 +17,7 @@ interface PlaybackBarProps {
   sequenceLength: number;
   isPlaying: boolean;
   playbackSpeedMs: number;
+  hasSequenceError?: boolean;
   onViewModeChange: (mode: ViewMode) => void;
   onTogglePlay: () => void;
   onStepTo: (stepIndex: number) => void;
@@ -109,7 +110,7 @@ export const PlaybackBar: React.FC<PlaybackBarProps> = ({
                 disabled={sequenceLength === 0}
                 aria-label={isPlaying ? 'Pause playback' : 'Play simulation'}
                 title="Play / Pause (Space)"
-                className="inline-flex min-w-[84px] items-center justify-center gap-1.5 rounded bg-accent-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-w-[84px] items-center justify-center gap-1.5 rounded-[3px] bg-ink-primary px-3 py-1.5 text-xs font-medium text-surface transition-colors hover:bg-ink-secondary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isPlaying ? (
                   <>

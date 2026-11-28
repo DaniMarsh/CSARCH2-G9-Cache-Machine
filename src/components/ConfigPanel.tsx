@@ -1,10 +1,5 @@
-import React from 'react';
-import {
-  AlertCircle,
-  Cpu,
-  RefreshCw,
-  SlidersHorizontal,
-} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import {
   VALID_BLOCK_SIZES,
   VALID_CACHE_BLOCKS,
@@ -45,6 +40,23 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onRerollRandom,
   onRawSequenceChange,
 }) => {
+  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [tcDraft, setTcDraft] = useState<string>(String(config.cacheAccessTime));
+  const [tmDraft, setTmDraft] = useState<string>(String(config.memoryAccessTime));
+  const [tcError, setTcError] = useState<string | null>(null);
+  const [tmError, setTmError] = useState<string | null>(null);
+  const sequenceInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    setTcDraft(String(config.cacheAccessTime));
+    setTcError(null);
+  }, [config.cacheAccessTime]);
+
+  useEffect(() => {
+    setTmDraft(String(config.memoryAccessTime));
+    setTmError(null);
+  }, [config.memoryAccessTime]);
+
   const missPenalty = calculateMissPenalty(
     config.blockSize,
     config.readPolicy,
@@ -52,297 +64,361 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     config.memoryAccessTime
   );
 
-  const handleNumericTimeChange = (
+  const handleTimingInput = (
     field: 'cacheAccessTime' | 'memoryAccessTime',
-    value: string
+    rawValue: string
   ) => {
-    const parsed = Number.parseFloat(value);
-    if (Number.isNaN(parsed) || parsed < 0) return;
+    const setDraft = field === 'cacheAccessTime' ? setTcDraft : setTmDraft;
+    const setErr = field === 'cacheAccessTime' ? setTcError : setTmError;
+    const label = field === 'cacheAccessTime' ? 'Tc' : 'Tm';
+
+    setDraft(rawValue);
+    const trimmed = rawValue.trim();
+    if (trimmed === '') {
+      setErr(`Enter a value ≥ 0 ns for ${label}.`);
+      return;
+    }
+
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setErr(`${label} must be ≥ 0 ns.`);
+      return;
+    }
+
+    setErr(null);
     onConfigChange({ ...config, [field]: parsed });
+  };
+
+  const handleTimingBlur = (field: 'cacheAccessTime' | 'memoryAccessTime') => {
+    if (field === 'cacheAccessTime' && tcError) {
+      setTcDraft(String(config.cacheAccessTime));
+      setTcError(null);
+    }
+    if (field === 'memoryAccessTime' && tmError) {
+      setTmDraft(String(config.memoryAccessTime));
+      setTmError(null);
+    }
+  };
+
+  const handlePresetClick = (preset: PresetType) => {
+    onSelectPreset(preset);
+    if (preset === 'custom') {
+      window.requestAnimationFrame(() => {
+        sequenceInputRef.current?.focus();
+      });
+    }
   };
 
   return (
     <section
       aria-label="Simulation Configuration"
-      className="rounded-lg border border-border-subtle bg-surface shadow-card"
+      className="sheet rounded-[4px]"
     >
-      {/* Top Bar: Section Label + Address Bit Partitioning Breakdown */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-subtle/60 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-ink-secondary" aria-hidden="true" />
-          <h2 className="text-sm font-semibold tracking-tight text-ink-primary">
-            Cache Parameters &amp; Workload
-          </h2>
-        </div>
-
-        {/* Computed Address Partitioning Badge */}
-        <div
-          className="flex flex-wrap items-center gap-2 font-mono text-xs tabular-nums"
-          aria-label="Address Bit Partitioning"
+      {/* Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-rail/70 px-4 py-2.5">
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-controls="config-panel-body"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="inline-flex items-center gap-1.5 text-left text-[13px] font-semibold text-ink-primary transition-colors hover:text-ink-secondary"
         >
-          <span className="inline-flex items-center gap-1.5 rounded border border-border-subtle bg-surface px-2 py-0.5 text-ink-secondary">
-            <Cpu className="h-3.5 w-3.5 text-accent-primary" aria-hidden="true" />
-            <span>
-              MM: <strong className="text-ink-primary">1024</strong> blks
-            </span>
-            <span className="text-border-strong">|</span>
-            <span>
-              <strong className="text-ink-primary">{partitioning.numSets}</strong>{' '}
-              {partitioning.numSets === 1 ? 'set' : 'sets'} &times;{' '}
-              <strong className="text-ink-primary">8</strong> ways
-            </span>
+          {isOpen ? (
+            <ChevronDown className="h-3.5 w-3.5 text-ink-secondary" aria-hidden="true" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 text-ink-secondary" aria-hidden="true" />
+          )}
+          <span>Cache Parameters &amp; Workload</span>
+        </button>
+
+        {/* Neutral Hardware Telemetry Summary (No semantic status colors) */}
+        <div
+          aria-label="Address Bit Partitioning Summary"
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs tabular-nums text-ink-secondary"
+        >
+          <span>
+            MM <strong className="font-semibold text-ink-primary">1024</strong> blks
           </span>
-
-          <div className="inline-flex items-center overflow-hidden rounded border border-border-strong bg-surface">
-            <span className="border-r border-border-subtle bg-accent-soft/70 px-2 py-0.5 font-medium text-accent-primary">
-              Tag {partitioning.tagBits}b
-            </span>
-            <span className="border-r border-border-subtle bg-status-hit-bg/80 px-2 py-0.5 font-medium text-status-hit">
-              Set {partitioning.setBits}b
-            </span>
-            <span className="border-r border-border-subtle bg-status-miss-bg/80 px-2 py-0.5 font-medium text-status-miss">
-              Word {partitioning.wordBits}b
-            </span>
-            <span className="px-2 py-0.5 text-ink-secondary">
-              Total {partitioning.totalAddressBits}b
-            </span>
-          </div>
-
-          <span className="inline-flex items-center rounded border border-border-subtle bg-surface px-2 py-0.5 text-ink-secondary">
-            M = <strong className="ml-1 text-ink-primary">{missPenalty.toFixed(2)} ns</strong>
+          <span className="text-border-strong" aria-hidden="true">/</span>
+          <span>
+            <strong className="font-semibold text-ink-primary">{partitioning.numSets}</strong>{' '}
+            {partitioning.numSets === 1 ? 'set' : 'sets'} &times; 8 ways
+          </span>
+          <span className="text-border-strong" aria-hidden="true">/</span>
+          <span>
+            Tag <strong className="font-semibold text-ink-primary">{partitioning.tagBits}b</strong>
+            {' · '}
+            Set <strong className="font-semibold text-ink-primary">{partitioning.setBits}b</strong>
+            {' · '}
+            Word <strong className="font-semibold text-ink-primary">{partitioning.wordBits}b</strong>
+            {' '}({partitioning.totalAddressBits}b)
+          </span>
+          <span className="text-border-strong" aria-hidden="true">/</span>
+          <span>
+            M = <strong className="font-semibold text-ink-primary">{missPenalty.toFixed(2)} ns</strong>
           </span>
         </div>
       </div>
 
-      {/* Main Controls Grid */}
-      <div className="grid grid-cols-1 gap-5 p-4 lg:grid-cols-12">
-        {/* Left Column: Hardware & Timing Parameters */}
-        <div className="space-y-4 lg:col-span-5">
-          <div className="grid grid-cols-2 gap-3">
-            {/* Block Size B */}
+      {/* Collapsible Controls Body */}
+      {isOpen && (
+        <div
+          id="config-panel-body"
+          className="grid grid-cols-1 gap-5 p-4 lg:grid-cols-12"
+        >
+          {/* Left Column: Hardware & Timing Controls */}
+          <div className="space-y-3.5 lg:col-span-5">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  htmlFor="block-size-select"
+                  className="mb-1 block text-xs font-medium text-ink-secondary"
+                >
+                  Block Size (<span className="font-mono">B</span>, words)
+                </label>
+                <select
+                  id="block-size-select"
+                  value={config.blockSize}
+                  onChange={(e) =>
+                    onConfigChange({
+                      ...config,
+                      blockSize: Number.parseInt(e.target.value, 10),
+                    })
+                  }
+                  className="w-full rounded-[3px] border border-border-strong bg-surface px-2.5 py-1.5 font-mono text-xs tabular-nums text-ink-primary transition-colors hover:border-ink-primary"
+                >
+                  {VALID_BLOCK_SIZES.map((b) => (
+                    <option key={b} value={b}>
+                      {b} words (2^{Math.log2(b)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cache-blocks-select"
+                  className="mb-1 block text-xs font-medium text-ink-secondary"
+                >
+                  Cache Blocks (<span className="font-mono">n</span>, min 8)
+                </label>
+                <select
+                  id="cache-blocks-select"
+                  value={config.cacheBlocks}
+                  onChange={(e) =>
+                    onConfigChange({
+                      ...config,
+                      cacheBlocks: Number.parseInt(e.target.value, 10),
+                    })
+                  }
+                  className="w-full rounded-[3px] border border-border-strong bg-surface px-2.5 py-1.5 font-mono text-xs tabular-nums text-ink-primary transition-colors hover:border-ink-primary"
+                >
+                  {VALID_CACHE_BLOCKS.map((n) => (
+                    <option key={n} value={n}>
+                      {n} blocks ({n / 8} {n / 8 === 1 ? 'set' : 'sets'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Read Miss Policy Toggle */}
             <div>
-              <label
-                htmlFor="block-size-select"
-                className="mb-1.5 block text-xs font-medium text-ink-secondary"
-              >
-                Block Size (<span className="font-mono">B</span>, words)
-              </label>
-              <select
-                id="block-size-select"
-                value={config.blockSize}
-                onChange={(e) =>
-                  onConfigChange({
-                    ...config,
-                    blockSize: Number.parseInt(e.target.value, 10),
-                  })
-                }
-                className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-sm tabular-nums text-ink-primary transition-colors hover:border-ink-muted"
-              >
-                {VALID_BLOCK_SIZES.map((b) => (
-                  <option key={b} value={b}>
-                    {b} words (2^{Math.log2(b)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Cache Blocks n */}
-            <div>
-              <label
-                htmlFor="cache-blocks-select"
-                className="mb-1.5 block text-xs font-medium text-ink-secondary"
-              >
-                Cache Blocks (<span className="font-mono">n</span>, min 8)
-              </label>
-              <select
-                id="cache-blocks-select"
-                value={config.cacheBlocks}
-                onChange={(e) =>
-                  onConfigChange({
-                    ...config,
-                    cacheBlocks: Number.parseInt(e.target.value, 10),
-                  })
-                }
-                className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-sm tabular-nums text-ink-primary transition-colors hover:border-ink-muted"
-              >
-                {VALID_CACHE_BLOCKS.map((n) => (
-                  <option key={n} value={n}>
-                    {n} blocks ({n / 8} {n / 8 === 1 ? 'set' : 'sets'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Read Policy Segmented Toggle */}
-          <div>
-            <span className="mb-1.5 block text-xs font-medium text-ink-secondary">
-              Read Miss Policy
-            </span>
-            <div
-              role="radiogroup"
-              aria-label="Read Miss Policy"
-              className="grid grid-cols-2 gap-1 rounded-md border border-border-subtle bg-subtle p-1"
-            >
-              {(
-                [
-                  { id: 'non-load-through', label: 'Non-Load-Through' },
-                  { id: 'load-through', label: 'Load-Through' },
-                ] as { id: ReadPolicy; label: string }[]
-              ).map((option) => {
-                const active = config.readPolicy === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => onConfigChange({ ...config, readPolicy: option.id })}
-                    className={`rounded px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                      active
-                        ? 'bg-surface text-ink-primary shadow-sm ring-1 ring-border-subtle'
-                        : 'text-ink-secondary hover:text-ink-primary'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Timing Inputs Tc & Tm */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                htmlFor="tc-input"
-                className="mb-1.5 block text-xs font-medium text-ink-secondary"
-              >
-                Cache Access Time (<span className="font-mono">Tc</span>, ns)
-              </label>
-              <input
-                id="tc-input"
-                type="number"
-                min={0.1}
-                step={0.5}
-                value={config.cacheAccessTime}
-                onChange={(e) => handleNumericTimeChange('cacheAccessTime', e.target.value)}
-                className="w-full rounded-md border border-border-strong bg-surface px-3 py-1.5 font-mono text-sm tabular-nums text-ink-primary"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="tm-input"
-                className="mb-1.5 block text-xs font-medium text-ink-secondary"
-              >
-                Main Memory Time (<span className="font-mono">Tm</span>, ns)
-              </label>
-              <input
-                id="tm-input"
-                type="number"
-                min={0.1}
-                step={1}
-                value={config.memoryAccessTime}
-                onChange={(e) => handleNumericTimeChange('memoryAccessTime', e.target.value)}
-                className="w-full rounded-md border border-border-strong bg-surface px-3 py-1.5 font-mono text-sm tabular-nums text-ink-primary"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Test Case Presets & Memory Sequence Input */}
-        <div className="flex flex-col justify-between space-y-3 lg:col-span-7">
-          <div>
-            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs font-medium text-ink-secondary">
-                Test Case Presets (scaled to{' '}
-                <span className="font-mono">n = {config.cacheBlocks}</span>)
+              <span className="mb-1 block text-xs font-medium text-ink-secondary">
+                Read Miss Policy
               </span>
-              {activePreset === 'random' && (
-                <div className="flex items-center gap-1.5">
-                  <span className="rounded bg-subtle px-2 py-0.5 font-mono text-[11px] tabular-nums text-ink-secondary">
-                    Seed: {randomSeed}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={onRerollRandom}
-                    className="inline-flex items-center gap-1 rounded border border-border-strong bg-surface px-2 py-0.5 text-xs font-medium text-ink-primary transition-colors hover:bg-hover"
-                  >
-                    <RefreshCw className="h-3 w-3" aria-hidden="true" />
-                    Re-roll
-                  </button>
-                </div>
-              )}
+              <div
+                role="radiogroup"
+                aria-label="Read Miss Policy"
+                className="grid grid-cols-2 overflow-hidden rounded-[3px] border border-border-strong bg-surface"
+              >
+                {(
+                  [
+                    { id: 'non-load-through', label: 'Non-Load-Through' },
+                    { id: 'load-through', label: 'Load-Through' },
+                  ] as { id: ReadPolicy; label: string }[]
+                ).map((option, idx) => {
+                  const active = config.readPolicy === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      title={
+                        option.id === 'non-load-through'
+                          ? 'Non-Load-Through: M = Tc + (B·Tm) + Tc'
+                          : 'Load-Through: M = Tc + Tm'
+                      }
+                      onClick={() => onConfigChange({ ...config, readPolicy: option.id })}
+                      className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        idx > 0 ? 'border-l border-border-strong' : ''
+                      } ${
+                        active
+                          ? 'bg-ink-primary text-surface'
+                          : 'bg-surface text-ink-secondary hover:bg-subtle hover:text-ink-primary'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              {(
-                [
-                  { id: 'sequential', label: `Sequential (2n×2 = ${4 * config.cacheBlocks})` },
-                  { id: 'mid-repeat', label: `Mid-Repeat (${10 * config.cacheBlocks})` },
-                  { id: 'random', label: 'Random (64)' },
-                  { id: 'custom', label: 'Custom Sequence' },
-                ] as { id: PresetType; label: string }[]
-              ).map((preset) => {
-                const active = activePreset === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => onSelectPreset(preset.id)}
-                    className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                      active
-                        ? 'border-accent-primary bg-accent-soft text-accent-primary'
-                        : 'border-border-subtle bg-surface text-ink-secondary hover:border-border-strong hover:bg-hover hover:text-ink-primary'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            {/* Timing Inputs Tc & Tm */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  htmlFor="tc-input"
+                  className="mb-1 block text-xs font-medium text-ink-secondary"
+                >
+                  Cache Access Time (<span className="font-mono">Tc</span>, ns)
+                </label>
+                <input
+                  id="tc-input"
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={tcDraft}
+                  onChange={(e) => handleTimingInput('cacheAccessTime', e.target.value)}
+                  onBlur={() => handleTimingBlur('cacheAccessTime')}
+                  aria-invalid={tcError !== null}
+                  className={`w-full rounded-[3px] border bg-surface px-2.5 py-1.5 font-mono text-xs tabular-nums text-ink-primary transition-colors ${
+                    tcError
+                      ? 'border-status-evict bg-status-evict-bg/40'
+                      : 'border-border-strong hover:border-ink-primary'
+                  }`}
+                />
+              </div>
 
-          {/* Editable Sequence Textarea */}
-          <div className="flex-1">
-            <div className="mb-1 flex items-center justify-between">
-              <label
-                htmlFor="sequence-input"
-                className="text-xs font-medium text-ink-secondary"
-              >
-                Memory Block Sequence (0–1023, comma or space separated)
-              </label>
-              <span className="font-mono text-[11px] tabular-nums text-ink-muted">
-                {sequenceError ? 'Invalid input' : `${sequenceLength} accesses`}
-              </span>
+              <div>
+                <label
+                  htmlFor="tm-input"
+                  className="mb-1 block text-xs font-medium text-ink-secondary"
+                >
+                  Main Memory Time (<span className="font-mono">Tm</span>, ns)
+                </label>
+                <input
+                  id="tm-input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={tmDraft}
+                  onChange={(e) => handleTimingInput('memoryAccessTime', e.target.value)}
+                  onBlur={() => handleTimingBlur('memoryAccessTime')}
+                  aria-invalid={tmError !== null}
+                  className={`w-full rounded-[3px] border bg-surface px-2.5 py-1.5 font-mono text-xs tabular-nums text-ink-primary transition-colors ${
+                    tmError
+                      ? 'border-status-evict bg-status-evict-bg/40'
+                      : 'border-border-strong hover:border-ink-primary'
+                  }`}
+                />
+              </div>
             </div>
-            <textarea
-              id="sequence-input"
-              rows={3}
-              value={rawSequence}
-              onChange={(e) => onRawSequenceChange(e.target.value)}
-              spellCheck={false}
-              placeholder="e.g. 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1..."
-              className={`trace-scroll w-full resize-y rounded-md border bg-surface px-3 py-2 font-mono text-xs leading-relaxed tabular-nums text-ink-primary transition-colors ${
-                sequenceError
-                  ? 'border-status-evict bg-status-evict-bg/30'
-                  : 'border-border-strong focus:border-accent-primary'
-              }`}
-            />
-            {sequenceError && (
-              <p
-                role="alert"
-                className="mt-1 flex items-center gap-1.5 text-xs font-medium text-status-evict"
-              >
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>{sequenceError}</span>
+
+            {(tcError || tmError) && (
+              <p role="alert" className="text-xs font-medium text-status-evict">
+                {tcError ?? tmError}
               </p>
             )}
           </div>
+
+          {/* Right Column: Presets & Editable Sequence */}
+          <div className="flex flex-col space-y-3 lg:col-span-7">
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-medium text-ink-secondary">
+                  Test Case Presets (scaled to{' '}
+                  <span className="font-mono tabular-nums text-ink-primary">
+                    n = {config.cacheBlocks}
+                  </span>
+                  )
+                </span>
+                {activePreset === 'random' && (
+                  <div className="flex items-center gap-2 font-mono text-xs tabular-nums text-ink-secondary">
+                    <span>Seed {randomSeed}</span>
+                    <button
+                      type="button"
+                      onClick={onRerollRandom}
+                      className="inline-flex items-center gap-1 rounded-[3px] border border-border-strong bg-surface px-2 py-0.5 font-sans text-xs font-medium text-ink-primary transition-colors hover:bg-subtle"
+                    >
+                      <RefreshCw className="h-3 w-3" aria-hidden="true" />
+                      Re-roll
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div
+                role="group"
+                aria-label="Test Case Presets"
+                className="flex flex-wrap gap-1.5"
+              >
+                {(
+                  [
+                    { id: 'sequential', label: `Sequential (2n×2 = ${4 * config.cacheBlocks})` },
+                    { id: 'mid-repeat', label: `Mid-Repeat (${10 * config.cacheBlocks})` },
+                    { id: 'random', label: 'Random (64)' },
+                    { id: 'custom', label: 'Custom Sequence' },
+                  ] as { id: PresetType; label: string }[]
+                ).map((preset) => {
+                  const active = activePreset === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => handlePresetClick(preset.id)}
+                      className={`rounded-[3px] border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        active
+                          ? 'border-ink-primary bg-ink-primary text-surface'
+                          : 'border-border-strong bg-surface text-ink-secondary hover:border-ink-primary hover:text-ink-primary'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <label
+                  htmlFor="sequence-input"
+                  className="text-xs font-medium text-ink-secondary"
+                >
+                  Memory Block Sequence (0–1023, comma or space separated)
+                </label>
+                <span className="font-mono text-xs tabular-nums text-ink-muted">
+                  {sequenceError ? 'Invalid input' : `${sequenceLength} accesses`}
+                </span>
+              </div>
+              <textarea
+                ref={sequenceInputRef}
+                id="sequence-input"
+                rows={3}
+                value={rawSequence}
+                onChange={(e) => onRawSequenceChange(e.target.value)}
+                spellCheck={false}
+                placeholder="0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1..."
+                aria-invalid={sequenceError !== null}
+                className={`trace-scroll w-full resize-y rounded-[3px] border bg-surface px-3 py-2 font-mono text-xs leading-relaxed tabular-nums text-ink-primary transition-colors ${
+                  sequenceError
+                    ? 'border-status-evict bg-status-evict-bg/35'
+                    : 'border-border-strong hover:border-ink-primary'
+                }`}
+              />
+              {sequenceError && (
+                <p role="alert" className="mt-1 text-xs font-medium text-status-evict">
+                  {sequenceError}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 };

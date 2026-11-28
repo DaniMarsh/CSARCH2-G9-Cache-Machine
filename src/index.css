@@ -2,45 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-/* UI/UX Pro Max Design System — Minimalist Warm Stationery Technical Workbench */
+/* Warm Stationery Instrument Design System — CSARCH2 Machine 9 */
 :root {
-  /* Paper & Surface Hierarchy */
-  --bg-canvas: #F8F6F1;
+  /* Archival Paper & Sheet Hierarchy */
+  --bg-canvas: #F6F4EF;
+  --bg-rail: #EFECE5;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #F2EFE9;
-  --bg-hover: #EAE5DC;
+  --bg-subtle: #EAE5DC;
+  --bg-hover: #E2DDD2;
 
-  /* Crisp Neutral Hairlines */
-  --border-subtle: #E4DED3;
-  --border-strong: #CCC4B6;
+  /* Crisp Structural Hairlines (>= 3:1 non-text contrast on #FFFFFF for --border-strong) */
+  --border-subtle: #DDD7CB;
+  --border-strong: #948C7E;
 
-  /* High-Contrast Ink Scale (>= 4.5:1 WCAG AA on #FFFFFF) */
-  --ink-primary: #1A1816;
-  --ink-secondary: #524D47;
-  --ink-muted: #716A61;
+  /* High-Contrast Warm Graphite Ink Scale (all >= 5.3:1 on #FFFFFF) */
+  --ink-primary: #1B1916;
+  --ink-secondary: #4D4840;
+  --ink-muted: #6A6359;
 
-  /* Primary Technical Accent */
-  --accent-primary: #1D4ED8;
-  --accent-soft: #EFF6FF;
+  /* Semantic Simulation States ONLY (Hit, Miss/Load, Eviction) */
+  --status-hit: #0D6E4F;
+  --status-hit-bg: #EAF6F1;
+  --status-hit-border: #8ACBB4;
 
-  /* Semantic Cache Event Tokens */
-  --status-hit: #047857;
-  --status-hit-bg: #ECFDF5;
-  --status-hit-border: #A7F3D0;
+  --status-miss: #9A550A;
+  --status-miss-bg: #FCF4E4;
+  --status-miss-border: #DFB977;
 
-  --status-miss: #B45309;
-  --status-miss-bg: #FFFBEB;
-  --status-miss-border: #FDE68A;
+  --status-evict: #B4233C;
+  --status-evict-bg: #FDECEF;
+  --status-evict-border: #E29EA9;
 
-  --status-load: #1D4ED8;
-  --status-load-bg: #EFF6FF;
-  --status-load-border: #BFDBFE;
-
-  --status-evict: #BE123C;
-  --status-evict-bg: #FFF1F2;
-  --status-evict-border: #FECDD3;
-
-  /* Density-7 Technical Workbench Spacing Scale */
+  /* Spacing Rhythm */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -52,22 +45,36 @@
 @layer base {
   html {
     color-scheme: light;
-    scroll-padding-top: 4rem;
+    scroll-padding-top: 8.5rem;
   }
 
   body {
-    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Fira Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-canvas);
     color: var(--ink-primary);
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    caret-color: var(--ink-primary);
+    line-height: 1.45;
+  }
+
+  code,
+  pre,
+  kbd,
+  .font-mono {
+    font-variant-ligatures: none;
+  }
+
+  ::selection {
+    background: var(--ink-primary);
+    color: var(--bg-surface);
   }
 
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible,
-  summary:focus-visible {
-    outline: 2px solid var(--accent-primary);
+  summary:focus-visible,
+  tr:focus-visible {
+    outline: 2px solid var(--ink-primary);
     outline-offset: 2px;
   }
 }
@@ -77,14 +84,18 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .stationery-card {
+  .sheet {
     background-color: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    box-shadow: 0 1px 2px rgba(26, 24, 22, 0.04);
   }
 }
 
-/* Subtle custom scrollbars for scrollable trace logs */
+/* Palette-matched scrollbars */
+.trace-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--bg-subtle);
+}
+
 .trace-scroll::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -96,58 +107,76 @@
 
 .trace-scroll::-webkit-scrollbar-thumb {
   background: var(--border-strong);
-  border-radius: 4px;
+  border: 2px solid var(--bg-subtle);
+  border-radius: 2px;
 }
 
 .trace-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--ink-muted);
+  background: var(--ink-secondary);
 }
 
-/* Stageshow Choreographed Playback Curves (soft arrival, no bounce, reduced-motion safe) */
-@keyframes stageHitSettle {
-  0% {
-    transform: translateY(-2px) scale(0.985);
-    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.28);
-  }
-  60% {
-    transform: translateY(0) scale(1.01);
-    box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.12);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0);
-  }
+/* Calibrated Instrument Range Fader */
+.bench-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 24px;
+  cursor: pointer;
 }
 
-@keyframes stageLoadArrive {
+.bench-range::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--border-strong);
+  border-radius: 1px;
+}
+
+.bench-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 18px;
+  margin-top: -7.5px;
+  background: var(--ink-primary);
+  border: 1px solid var(--ink-primary);
+  border-radius: 2px;
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.bench-range:hover::-webkit-slider-thumb {
+  background: var(--ink-secondary);
+  transform: scaleY(1.06);
+}
+
+.bench-range::-moz-range-track {
+  height: 3px;
+  background: var(--border-strong);
+  border-radius: 1px;
+}
+
+.bench-range::-moz-range-thumb {
+  width: 12px;
+  height: 18px;
+  background: var(--ink-primary);
+  border: 1px solid var(--ink-primary);
+  border-radius: 2px;
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+/* Stageshow Choreographed Transitions (no glow halos, no layout shift, reduced-motion safe) */
+@keyframes stageValueRoll {
   0% {
+    opacity: 0.2;
     transform: translateY(-4px);
-    opacity: 0.72;
   }
   100% {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes stageEvictSwap {
+@keyframes stageAgeTick {
   0% {
-    transform: translateX(-3px);
-    box-shadow: 0 0 0 0 rgba(190, 18, 60, 0.28);
-  }
-  45% {
-    transform: translateX(2px);
-    box-shadow: 0 0 0 4px rgba(190, 18, 60, 0.12);
-  }
-  100% {
-    transform: translateX(0);
-    box-shadow: 0 0 0 0 rgba(190, 18, 60, 0);
-  }
-}
-
-@keyframes stageBannerSettle {
-  0% {
-    opacity: 0.75;
+    opacity: 0.35;
     transform: translateY(-2px);
   }
   100% {
@@ -156,27 +185,33 @@
   }
 }
 
-.stage-cell-hit {
-  animation: stageHitSettle 360ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+@keyframes stageEvictReplace {
+  0% {
+    opacity: 0.2;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.stage-cell-load {
-  animation: stageLoadArrive 320ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+.stage-roll-load {
+  animation: stageValueRoll 220ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
 }
 
-.stage-cell-evict {
-  animation: stageEvictSwap 380ms cubic-bezier(0.45, 0, 0.1, 1) forwards;
+.stage-roll-evict {
+  animation: stageEvictReplace 240ms cubic-bezier(0.45, 0, 0.1, 1) both;
 }
 
-.stage-banner-settle {
-  animation: stageBannerSettle 240ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+.stage-tick-hit {
+  animation: stageAgeTick 180ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage-cell-hit,
-  .stage-cell-load,
-  .stage-cell-evict,
-  .stage-banner-settle {
+  .stage-roll-load,
+  .stage-roll-evict,
+  .stage-tick-hit {
     animation: none !important;
   }
   *,
