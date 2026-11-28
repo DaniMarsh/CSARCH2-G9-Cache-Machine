@@ -1,45 +1,39 @@
 # Design System: CSARCH2 Cache Memory Simulator (Machine 9)
 
-Generated via **UI/UX Pro Max** design intelligence (matched against `styles.csv` #1 Minimalism & Swiss Style, `typography.csv` #9 Developer Mono, `colors.csv` #30 Knowledge Base/Documentation, and `ux-guidelines.csv` accessibility/table rules).
+Generated via **UI/UX Pro Max** design intelligence (matched against `styles.csv` Minimalism & Swiss Style, `typography.csv` Dashboard Data — Fira Sans + Fira Code, and `ux-guidelines.csv` data table & accessibility rules) and refined under **/impeccable** Operate mode.
 
 ## 1. Visual Direction
-- **Aesthetic**: Minimalist, warm stationery-inspired light-mode technical workbench.
-- **Hierarchy**: Crisp 1px warm-stone hairline borders over a warm paper canvas (`#F7F5F0`), elevated pure-white surfaces (`#FFFFFF`), ink-dark primary typography (`#1C1917`), and restrained semantic status accents.
-- **Density**: Technical workbench (`--density: 7`), compact tabular metrics with `font-variant-numeric: tabular-nums` on every address, index, tag, age, rate, and nanosecond timing.
+- **Aesthetic**: Minimalist warm stationery technical instrument (light-mode only).
+- **Hierarchy**: Flat 1px warm-stone hairlines (`#DDD7CB`) over archival paper (`#F6F4EF`), pure white sheets (`#FFFFFF`), warm graphite ink (`#1B1916`), and zero decorative accent colors.
+- **Density**: Technical workbench (`--density: 8`), strict `tabular-nums` on every memory block index, tag, set index, age counter, percentage, and nanosecond timing value.
 
-## 2. Color Tokens (CSS Variables)
+## 2. Color Tokens (CSS Variables in `src/index.css`)
 | Token | Hex | Role |
 |---|---|---|
-| `--bg-canvas` | `#F8F6F1` | Warm stationery page background |
-| `--bg-surface` | `#FFFFFF` | Elevated cards, cache grids, trace panel |
-| `--bg-subtle` | `#F2EFE9` | Table headers, secondary panels, inactive pills |
-| `--bg-hover` | `#EAE5DC` | Interactive hover surface |
-| `--border-subtle` | `#E4DED3` | Default 1px structural hairline |
-| `--border-strong` | `#CCC4B6` | Active control / input border |
-| `--ink-primary` | `#1A1816` | Primary headings & values (>15:1 on white) |
-| `--ink-secondary` | `#524D47` | Secondary labels & subtitles (>7.8:1 on white) |
-| `--ink-muted` | `#716A61` | Technical metadata & empty slots (>5.1:1 on white) |
-| `--accent-primary` | `#1D4ED8` | Primary interactive actions, active focus ring |
-| `--accent-soft` | `#EFF6FF` | Active set highlight / selected state tint |
-| `--status-hit` | `#047857` | Cache Hit text/border (emerald-700) |
-| `--status-hit-bg` | `#ECFDF5` | Cache Hit cell fill (emerald-50) |
-| `--status-miss` | `#B45309` | Cache Miss / Cold Load text/border (amber-700) |
-| `--status-miss-bg` | `#FFFBEB` | Cache Miss / Cold Load cell fill (amber-50) |
-| `--status-evict` | `#BE123C` | Evicted / Replaced slot text/border (rose-700) |
-| `--status-evict-bg` | `#FFF1F2` | Evicted / Replaced slot cell fill (rose-50) |
+| `--bg-canvas` | `#F6F4EF` | Warm archival paper background |
+| `--bg-rail` | `#EFECE5` | Section header bands & subtle tracks |
+| `--bg-surface` | `#FFFFFF` | Elevated flat sheets, cache grids, tables |
+| `--bg-subtle` | `#EAE5DC` | Table headers, inactive tracks, selected row tint |
+| `--bg-hover` | `#E2DDD2` | Interactive hover surface |
+| `--border-subtle` | `#DDD7CB` | Default 1px structural hairline |
+| `--border-strong` | `#948C7E` | Input & control border (>= 3:1 on white) |
+| `--ink-primary` | `#1B1916` | Primary headings, active controls, focus ring (>16:1 on white) |
+| `--ink-secondary` | `#4D4840` | Secondary labels & subtitles (>8.5:1 on white) |
+| `--ink-muted` | `#6A6359` | Metadata & quiet empty indicators (>5.3:1 on white) |
+| `--status-hit` | `#0D6E4F` | Cache Hit text / inset ring |
+| `--status-hit-bg` | `#EAF6F1` | Cache Hit cell fill |
+| `--status-hit-border` | `#8ACBB4` | Cache Hit subtle border |
+| `--status-miss` | `#9A550A` | Cache Miss / Cold Load text / inset ring |
+| `--status-miss-bg` | `#FCF4E4` | Cache Miss / Cold Load cell fill |
+| `--status-miss-border` | `#DFB977` | Cache Miss / Cold Load subtle border |
+| `--status-evict` | `#B4233C` | Evicted / Replaced slot text / inset ring |
+| `--status-evict-bg` | `#FDECEF` | Evicted / Replaced slot cell fill |
+| `--status-evict-border` | `#E29EA9` | Evicted / Replaced slot subtle border |
 
 ## 3. Typography Pairing
-- **UI & Headings**: `IBM Plex Sans` (400, 500, 600, 700) — high legibility, neutral technical authority.
-- **Monospace / Telemetry**: `JetBrains Mono` (400, 500, 600) — crisp zero/one distinction for block addresses, tags, set indices, ages, and trace logs.
-- **Numeric Discipline**: `.tabular-nums` applied to all counters, rates, timings, and grid cells to eliminate horizontal jitter during animated playback.
+- **UI & Headings**: `Fira Sans` (400, 500, 600, 700) — clean, neutral technical legibility.
+- **Monospace / Telemetry**: `Fira Code` (400, 500, 600) with `font-variant-ligatures: none` and `tabular-nums`.
 
-## 4. Spacing Scale & Layout
-- `--space-1`: `4px` | `--space-2`: `8px` | `--space-3`: `12px` | `--space-4`: `16px` | `--space-5`: `24px` | `--space-6`: `32px`
-- Max content container: `1440px` centered with responsive padding (`16px` mobile, `24px` tablet/desktop).
-- Cache grid wrapper uses `overflow-x-auto` with sticky Set index column so 8 ways remain scannable on narrow viewports without breaking layout.
-
-## 5. Accessibility & Motion
-- Minimum 4.5:1 text contrast on all primary/secondary copy and status badges.
-- Visible 2px focus ring (`--accent-primary`) on all interactive controls and keyboard-operable tabs/playback buttons.
-- Status never conveyed by color alone: every Hit, Miss/Load, and Eviction includes explicit text badges (`HIT`, `MISS`, `EVICT`) and icons.
-- `@media (prefers-reduced-motion: reduce)` disables cell transition pulses while preserving instant state clarity.
+## 4. Technical Diagrams & Motion
+- **Dimensional Drawings (DWG-01 & DWG-02)**: Strictly monochrome (`#111111` ink on `#FFFFFF`), variable-coded with closing formula tables, line-weight hierarchy, dash patterns, and 45° diagonal hatching.
+- **Choreography**: Forward-only value transitions (`stage-roll-load`, `stage-roll-evict`, `stage-tick-hit`), inset 2px active cell rings (zero layout shift), steady callout frame, and full `prefers-reduced-motion` support.

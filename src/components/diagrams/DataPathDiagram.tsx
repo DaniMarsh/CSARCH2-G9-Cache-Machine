@@ -14,6 +14,11 @@ interface DataPathDiagramProps {
   isSnapshotMode: boolean;
 }
 
+/**
+ * DWG-01: Strictly monochrome Apple-style dimensional schematic of Machine 9
+ * (CPU <-> Cache Controller <-> 8-Way BSA Cache <-> 1024-Block Main Memory).
+ * Differentiation uses line weight, dash patterns, 45° hatching, and boxed note codes.
+ */
 export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
   config,
   partitioning,
@@ -29,748 +34,531 @@ export const DataPathDiagram: React.FC<DataPathDiagramProps> = ({
     config.memoryAccessTime
   );
 
-  // Determine live bus activity from current step (when in Step-by-Step mode)
   const hasActiveStep = !isSnapshotMode && lruStep !== null && mruStep !== null;
   const anyHit = hasActiveStep && (lruStep.outcome === 'HIT' || mruStep.outcome === 'HIT');
   const anyMiss = hasActiveStep && (lruStep.outcome === 'MISS' || mruStep.outcome === 'MISS');
   const anyEvict = hasActiveStep && (lruStep.action === 'EVICT' || mruStep.action === 'EVICT');
 
-  const hitStroke = anyHit ? 'var(--status-hit)' : 'var(--ink-primary)';
-  const missStroke = anyEvict
-    ? 'var(--status-evict)'
-    : anyMiss
-    ? 'var(--status-miss)'
-    : 'var(--ink-primary)';
-  const bypassStroke = isLoadThrough
-    ? anyMiss
-      ? 'var(--accent-primary)'
-      : 'var(--ink-primary)'
-    : 'var(--border-strong)';
+  const varRows: [string, string, string][] = [
+    ['B', 'BLOCK-W', `${config.blockSize} W`],
+    ['n', 'CACHE-BLK', `${config.cacheBlocks} BLK`],
+    ['S', 'n / 8', `${partitioning.numSets} ${partitioning.numSets === 1 ? 'SET' : 'SETS'}`],
+    ['Tc', 'CACHE-NS', `${config.cacheAccessTime} NS`],
+    ['Tm', 'MEM-NS', `${config.memoryAccessTime} NS`],
+    [
+      'M',
+      isLoadThrough ? 'Tc + Tm' : '2Tc + B·Tm',
+      `${missPenalty.toFixed(2)} NS`,
+    ],
+  ];
 
   return (
-    <div className="rounded-md border border-border-subtle bg-surface p-3">
-      {/* Drawing Sheet Header Strip */}
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-2 font-mono text-[11px] tabular-nums">
-        <div className="flex items-center gap-2">
-          <span className="rounded border border-ink-primary px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-ink-primary">
-            DWG-01
-          </span>
-          <span className="font-semibold uppercase tracking-wider text-ink-primary">
-            CPU &harr; Cache &harr; Main Memory Data Path
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-ink-secondary">
-          <span>
-            POLICY:{' '}
-            <strong className="text-ink-primary">
-              {isLoadThrough ? 'LOAD-THROUGH' : 'NON-LOAD-THROUGH'}
-            </strong>
-          </span>
-          <span className="text-border-strong">|</span>
-          <span>
-            M = <strong className="text-ink-primary">{missPenalty.toFixed(2)} ns</strong>
-          </span>
-          {hasActiveStep && lruStep && mruStep && (
-            <>
-              <span className="text-border-strong">|</span>
-              <span
-                className={`rounded px-1.5 py-0.5 font-semibold ${
-                  lruStep.outcome === 'HIT'
-                    ? 'bg-status-hit-bg text-status-hit'
-                    : lruStep.action === 'EVICT'
-                    ? 'bg-status-evict-bg text-status-evict'
-                    : 'bg-status-miss-bg text-status-miss'
-                }`}
-              >
-                LRU: {lruStep.action === 'COLD_LOAD' ? 'MISS' : lruStep.action}
-              </span>
-              <span
-                className={`rounded px-1.5 py-0.5 font-semibold ${
-                  mruStep.outcome === 'HIT'
-                    ? 'bg-status-hit-bg text-status-hit'
-                    : mruStep.action === 'EVICT'
-                    ? 'bg-status-evict-bg text-status-evict'
-                    : 'bg-status-miss-bg text-status-miss'
-                }`}
-              >
-                MRU: {mruStep.action === 'COLD_LOAD' ? 'MISS' : mruStep.action}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
+    <div className="p-4">
+      <div className="trace-scroll overflow-x-auto">
+        <svg
+          viewBox="0 0 1120 318"
+          role="img"
+          aria-label={`DWG-01 monochrome technical schematic of Machine 9 CPU to Cache Controller to 8-Way BSA Cache to 1024-Block Main Memory data path using ${
+            isLoadThrough ? 'Load-Through' : 'Non-Load-Through'
+          } policy with miss penalty ${missPenalty.toFixed(2)} nanoseconds`}
+          className="block h-auto w-full min-w-[820px] select-none"
+        >
+          <defs>
+            <pattern
+              id="dd01-hatch"
+              width="6"
+              height="6"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line x1="0" y1="0" x2="0" y2="6" stroke="#8C8C8C" strokeWidth="0.9" />
+            </pattern>
+            <marker
+              id="dd01-arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="6.5"
+              markerHeight="6.5"
+              orient="auto-start-reverse"
+              markerUnits="userSpaceOnUse"
+            >
+              <path d="M 0 1.6 L 9.5 5 L 0 8.4 z" fill="#111111" />
+            </marker>
+            <marker
+              id="dd01-arrow-muted"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+              markerUnits="userSpaceOnUse"
+            >
+              <path d="M 0 1.6 L 9.5 5 L 0 8.4 z" fill="#767676" />
+            </marker>
+          </defs>
 
-      {/* Dimensional SVG Schematic */}
-      <svg
-        viewBox="0 0 860 286"
-        role="img"
-        aria-label={`Machine 9 cache architecture data path using ${
-          isLoadThrough ? 'Load-Through' : 'Non-Load-Through'
-        } policy with miss penalty ${missPenalty.toFixed(2)} nanoseconds`}
-        className="h-auto w-full select-none"
-      >
-        <defs>
-          <pattern
-            id="dd-hatch-neutral"
-            width="6"
-            height="6"
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(45)"
-          >
-            <line
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="6"
-              stroke="var(--border-subtle)"
-              strokeWidth="1.2"
-            />
-          </pattern>
-          <marker
-            id="dd-arrow-ink"
-            viewBox="0 0 10 10"
-            refX="8.5"
-            refY="5"
-            markerWidth="6.5"
-            markerHeight="6.5"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="var(--ink-primary)" />
-          </marker>
-          <marker
-            id="dd-arrow-hit"
-            viewBox="0 0 10 10"
-            refX="8.5"
-            refY="5"
-            markerWidth="6.5"
-            markerHeight="6.5"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="var(--status-hit)" />
-          </marker>
-          <marker
-            id="dd-arrow-miss"
-            viewBox="0 0 10 10"
-            refX="8.5"
-            refY="5"
-            markerWidth="6.5"
-            markerHeight="6.5"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="var(--status-miss)" />
-          </marker>
-          <marker
-            id="dd-arrow-evict"
-            viewBox="0 0 10 10"
-            refX="8.5"
-            refY="5"
-            markerWidth="6.5"
-            markerHeight="6.5"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="var(--status-evict)" />
-          </marker>
-          <marker
-            id="dd-arrow-accent"
-            viewBox="0 0 10 10"
-            refX="8.5"
-            refY="5"
-            markerWidth="6.5"
-            markerHeight="6.5"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="var(--accent-primary)" />
-          </marker>
-          <marker
-            id="dd-arrow-muted"
-            viewBox="0 0 10 10"
-            refX="8.5"
-            refY="5"
-            markerWidth="6"
-            markerHeight="6"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="var(--border-strong)" />
-          </marker>
-        </defs>
-
-        {/* Outer Technical Sheet Frame */}
-        <rect
-          x="6"
-          y="6"
-          width="848"
-          height="274"
-          rx="6"
-          fill="var(--bg-canvas)"
-          fillOpacity="0.45"
-          stroke="var(--border-strong)"
-          strokeWidth="1"
-        />
-
-        {/* Top Dimension Chain: Timing Hierarchy */}
-        <g fontFamily="JetBrains Mono, monospace" fontSize="9.5" fill="var(--ink-secondary)">
-          {/* Extension lines */}
-          <line x1="28" y1="30" x2="28" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" />
-          <line x1="600" y1="30" x2="600" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" />
-          <line x1="832" y1="30" x2="832" y2="58" stroke="var(--border-strong)" strokeWidth="0.7" />
-
-          {/* Dimension line 1: CPU -> Cache boundary */}
-          <line
-            x1="31"
-            y1="38"
-            x2="597"
-            y2="38"
-            stroke="var(--ink-muted)"
-            strokeWidth="0.75"
-            markerStart="url(#dd-arrow-ink)"
-            markerEnd="url(#dd-arrow-ink)"
-          />
-          <rect x="232" y="29" width="164" height="17" fill="var(--bg-surface)" rx="2" />
-          <text x="314" y="41" textAnchor="middle" fill="var(--ink-primary)" fontWeight="600">
-            ON-CHIP · HIT TIME Tc = {config.cacheAccessTime}ns
-          </text>
-
-          {/* Dimension line 2: Main Memory boundary */}
-          <line
-            x1="603"
-            y1="38"
-            x2="829"
-            y2="38"
-            stroke="var(--ink-muted)"
-            strokeWidth="0.75"
-            markerStart="url(#dd-arrow-ink)"
-            markerEnd="url(#dd-arrow-ink)"
-          />
-          <rect x="652" y="29" width="128" height="17" fill="var(--bg-surface)" rx="2" />
-          <text x="716" y="41" textAnchor="middle" fill="var(--ink-primary)" fontWeight="600">
-            MAIN MEM Tm = {config.memoryAccessTime}ns
-          </text>
-        </g>
-
-        {/* === BLOCK 1: CPU === */}
-        <g>
+          {/* Outer Monochrome Drawing Sheet Frame */}
           <rect
-            x="28"
-            y="66"
-            width="136"
-            height="120"
-            rx="4"
-            fill="var(--bg-surface)"
-            stroke="var(--ink-primary)"
-            strokeWidth="1.6"
+            x="4"
+            y="4"
+            width="1112"
+            height="310"
+            rx="6"
+            fill="#FFFFFF"
+            stroke="#111111"
+            strokeWidth="1.2"
           />
-          <line x1="28" y1="90" x2="164" y2="90" stroke="var(--border-subtle)" strokeWidth="1" />
+
+          {/* Top Title Strip inside Sheet */}
+          <line x1="4" y1="30" x2="1116" y2="30" stroke="#111111" strokeWidth="0.8" />
           <text
-            x="96"
-            y="82"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
+            x="16"
+            y="21"
+            fontFamily="Fira Code, monospace"
             fontSize="10.5"
-            fontWeight="700"
-            fill="var(--ink-primary)"
+            fontWeight="600"
+            letterSpacing="0.8"
+            fill="#111111"
           >
-            CPU CORE
+            DWG-01 · CPU ↔ CACHE CONTROLLER ↔ 8-WAY BSA CACHE ↔ MAIN MEMORY DATA PATH
           </text>
           <text
-            x="96"
-            y="112"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
+            x="1104"
+            y="21"
+            textAnchor="end"
+            fontFamily="Fira Code, monospace"
             fontSize="9.5"
-            fill="var(--ink-secondary)"
+            letterSpacing="0.6"
+            fill="#444444"
           >
-            REQ BLOCK ADDR
-          </text>
-          <rect
-            x="44"
-            y="122"
-            width="104"
-            height="28"
-            rx="3"
-            fill={hasActiveStep ? 'var(--accent-soft)' : 'var(--bg-subtle)'}
-            stroke={hasActiveStep ? 'var(--accent-primary)' : 'var(--border-strong)'}
-            strokeWidth="1"
-          />
-          <text
-            x="96"
-            y="140"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="11.5"
-            fontWeight="700"
-            fill={hasActiveStep ? 'var(--accent-primary)' : 'var(--ink-primary)'}
-          >
-            {hasActiveStep && lruStep ? `BLK #${lruStep.blockAddress}` : '0 .. 1023'}
-          </text>
-          <text
-            x="96"
-            y="172"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9"
-            fill="var(--ink-muted)"
-          >
-            {partitioning.totalAddressBits}-BIT WORD ADDR
-          </text>
-        </g>
-
-        {/* === BLOCK 2: CACHE CONTROLLER === */}
-        <g>
-          <rect
-            x="218"
-            y="66"
-            width="156"
-            height="120"
-            rx="4"
-            fill="var(--bg-surface)"
-            stroke="var(--ink-primary)"
-            strokeWidth="1.6"
-          />
-          <line x1="218" y1="90" x2="374" y2="90" stroke="var(--border-subtle)" strokeWidth="1" />
-          <text
-            x="296"
-            y="82"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="10"
-            fontWeight="700"
-            fill="var(--ink-primary)"
-          >
-            CACHE CONTROLLER
-          </text>
-          <text
-            x="296"
-            y="110"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9.5"
-            fill="var(--ink-secondary)"
-          >
-            TAG COMPARATOR
-          </text>
-          <rect
-            x="232"
-            y="120"
-            width="128"
-            height="24"
-            rx="3"
-            fill="var(--bg-subtle)"
-            stroke="var(--border-strong)"
-            strokeDasharray="3 2"
-            strokeWidth="0.9"
-          />
-          <text
-            x="296"
-            y="135"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9.5"
-            fill="var(--ink-primary)"
-          >
-            {hasActiveStep && lruStep
-              ? `SET ${lruStep.setIndex} · TAG ${lruStep.tag}`
-              : `SET = BLK % ${partitioning.numSets}`}
-          </text>
-          <text
-            x="296"
-            y="162"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9"
-            fill="var(--ink-muted)"
-          >
-            POLICY: LRU vs MRU
-          </text>
-          <text
-            x="296"
-            y="175"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="8.5"
-            fill="var(--ink-muted)"
-          >
-            AGE-BASED (8 WAYS)
-          </text>
-        </g>
-
-        {/* === BLOCK 3: 8-WAY BSA CACHE === */}
-        <g>
-          <rect
-            x="426"
-            y="66"
-            width="174"
-            height="120"
-            rx="4"
-            fill={
-              anyHit && !anyMiss
-                ? 'var(--status-hit-bg)'
-                : anyEvict
-                ? 'var(--status-evict-bg)'
-                : anyMiss
-                ? 'var(--status-miss-bg)'
-                : 'var(--bg-surface)'
-            }
-            stroke={anyHit && !anyMiss ? 'var(--status-hit)' : 'var(--ink-primary)'}
-            strokeWidth="1.6"
-          />
-          <line x1="426" y1="90" x2="600" y2="90" stroke="var(--border-subtle)" strokeWidth="1" />
-          <text
-            x="513"
-            y="82"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="10"
-            fontWeight="700"
-            fill="var(--ink-primary)"
-          >
-            8-WAY BSA CACHE
+            {hasActiveStep && lruStep && mruStep
+              ? `STEP ${lruStep.step} · LRU:${lruStep.action === 'COLD_LOAD' ? 'LOAD' : lruStep.action} · MRU:${
+                  mruStep.action === 'COLD_LOAD' ? 'LOAD' : mruStep.action
+                }`
+              : `POLICY: ${isLoadThrough ? 'LOAD-THROUGH' : 'NON-LOAD-THROUGH'} · UNITS: NS / WORDS`}
           </text>
 
-          {/* Mini 8-way slot schematic */}
-          {Array.from({ length: 8 }, (_, w) => (
+          {/* Vertical Divider Separating Schematic (Left) & Variable Table (Right) */}
+          <line x1="864" y1="30" x2="864" y2="294" stroke="#111111" strokeWidth="0.8" />
+
+          {/* === TOP TIMING DIMENSION CHAIN === */}
+          <g fontFamily="Fira Code, monospace" fontSize="9.5" fill="#111111">
+            <line x1="24" y1="42" x2="24" y2="76" stroke="#111111" strokeWidth="0.55" />
+            <line x1="604" y1="42" x2="604" y2="76" stroke="#111111" strokeWidth="0.55" />
+            <line x1="844" y1="42" x2="844" y2="76" stroke="#111111" strokeWidth="0.55" />
+
+            {/* On-Chip Span */}
+            <line
+              x1="28"
+              y1="52"
+              x2="600"
+              y2="52"
+              stroke="#111111"
+              strokeWidth="0.7"
+              markerStart="url(#dd01-arrow)"
+              markerEnd="url(#dd01-arrow)"
+            />
+            <rect x="224" y="43" width="180" height="17" fill="#FFFFFF" />
+            <text x="314" y="55" textAnchor="middle" fontWeight="600">
+              ON-CHIP · Tc = {config.cacheAccessTime} NS
+            </text>
+
+            {/* Off-Chip Span */}
+            <line
+              x1="608"
+              y1="52"
+              x2="840"
+              y2="52"
+              stroke="#111111"
+              strokeWidth="0.7"
+              markerStart="url(#dd01-arrow)"
+              markerEnd="url(#dd01-arrow)"
+            />
+            <rect x="652" y="43" width="144" height="17" fill="#FFFFFF" />
+            <text x="724" y="55" textAnchor="middle" fontWeight="600">
+              OFF-CHIP · Tm = {config.memoryAccessTime} NS
+            </text>
+          </g>
+
+          {/* === BLOCK 1: CPU CORE === */}
+          <g fontFamily="Fira Code, monospace">
             <rect
-              key={w}
-              x={439 + w * 18.5}
-              y={102}
-              width={15}
-              height={26}
-              rx={1.5}
-              fill="var(--bg-surface)"
-              stroke="var(--border-strong)"
+              x="24"
+              y="82"
+              width="136"
+              height="122"
+              fill="#FFFFFF"
+              stroke="#111111"
+              strokeWidth="1.6"
+            />
+            <line x1="24" y1="106" x2="160" y2="106" stroke="#111111" strokeWidth="0.8" />
+            <text x="92" y="98" textAnchor="middle" fontSize="10.5" fontWeight="600" fill="#111111">
+              CPU CORE
+            </text>
+            <text x="92" y="126" textAnchor="middle" fontSize="9" fill="#444444">
+              REQ BLOCK ADDR
+            </text>
+            <rect
+              x="38"
+              y="135"
+              width="108"
+              height="30"
+              fill={hasActiveStep ? '#E8E6E0' : '#F4F3EF'}
+              stroke="#111111"
+              strokeWidth={hasActiveStep ? '1.3' : '0.8'}
+              strokeDasharray={hasActiveStep ? undefined : '4 3'}
+            />
+            <text x="92" y="154" textAnchor="middle" fontSize="11.5" fontWeight="600" fill="#111111">
+              {hasActiveStep && lruStep ? `BLK #${lruStep.blockAddress}` : '0 .. 1023'}
+            </text>
+            <text x="92" y="188" textAnchor="middle" fontSize="9" fill="#555555">
+              A = {partitioning.totalAddressBits}-BIT WORD
+            </text>
+          </g>
+
+          {/* === BLOCK 2: CACHE CONTROLLER === */}
+          <g fontFamily="Fira Code, monospace">
+            <rect
+              x="216"
+              y="82"
+              width="160"
+              height="122"
+              fill="#FFFFFF"
+              stroke="#111111"
+              strokeWidth="1.6"
+            />
+            <line x1="216" y1="106" x2="376" y2="106" stroke="#111111" strokeWidth="0.8" />
+            <text x="296" y="98" textAnchor="middle" fontSize="10" fontWeight="600" fill="#111111">
+              CACHE CONTROLLER
+            </text>
+            <text x="296" y="125" textAnchor="middle" fontSize="9" fill="#444444">
+              TAG COMPARATOR
+            </text>
+            <rect
+              x="230"
+              y="134"
+              width="132"
+              height="26"
+              fill="#F4F3EF"
+              stroke="#111111"
+              strokeWidth="0.8"
+              strokeDasharray="4 3"
+            />
+            <text x="296" y="151" textAnchor="middle" fontSize="9.5" fontWeight="600" fill="#111111">
+              {hasActiveStep && lruStep
+                ? `S:${lruStep.setIndex} · T:${lruStep.tag}`
+                : `SET = BLK % ${partitioning.numSets}`}
+            </text>
+            <text x="296" y="178" textAnchor="middle" fontSize="8.8" fill="#444444">
+              AGE UNIT: LRU vs MRU
+            </text>
+            <text x="296" y="193" textAnchor="middle" fontSize="8.5" fill="#666666">
+              8 PARALLEL WAYS
+            </text>
+            {/* Boxed Note [1] */}
+            <rect x="357" y="86" width="14" height="14" fill="#FFFFFF" stroke="#111111" strokeWidth="0.8" />
+            <text x="364" y="96.5" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#111111">
+              1
+            </text>
+          </g>
+
+          {/* === BLOCK 3: 8-WAY BSA CACHE === */}
+          <g fontFamily="Fira Code, monospace">
+            <rect
+              x="430"
+              y="82"
+              width="174"
+              height="122"
+              fill={anyHit && !anyMiss ? '#F4F3EF' : '#FFFFFF'}
+              stroke="#111111"
+              strokeWidth={anyHit || anyMiss ? '2' : '1.6'}
+            />
+            <line x1="430" y1="106" x2="604" y2="106" stroke="#111111" strokeWidth="0.8" />
+            <text x="517" y="98" textAnchor="middle" fontSize="10" fontWeight="600" fill="#111111">
+              8-WAY BSA CACHE
+            </text>
+
+            {/* 8-Way Slot Array */}
+            {Array.from({ length: 8 }, (_, w) => {
+              const isHighlightedWay =
+                hasActiveStep &&
+                ((lruStep && lruStep.wayIndex === w) || (mruStep && mruStep.wayIndex === w));
+              return (
+                <rect
+                  key={w}
+                  x={443 + w * 18.5}
+                  y={116}
+                  width={15}
+                  height={28}
+                  fill={isHighlightedWay ? '#111111' : '#F4F3EF'}
+                  stroke="#111111"
+                  strokeWidth="0.8"
+                />
+              );
+            })}
+            <text x="517" y="160" textAnchor="middle" fontSize="9.5" fontWeight="600" fill="#111111">
+              n = {config.cacheBlocks} ({partitioning.numSets}S &times; 8W)
+            </text>
+            <text x="517" y="176" textAnchor="middle" fontSize="9" fill="#444444">
+              B = {config.blockSize} WORDS / BLK
+            </text>
+            <text x="517" y="192" textAnchor="middle" fontSize="8.5" fill="#666666">
+              {anyEvict ? 'STATE: EVICT + FILL' : anyMiss ? 'STATE: COLD LOAD' : anyHit ? 'STATE: CACHE HIT' : 'IDLE / STANDBY'}
+            </text>
+            {/* Boxed Note [2] */}
+            <rect x="585" y="86" width="14" height="14" fill="#FFFFFF" stroke="#111111" strokeWidth="0.8" />
+            <text x="592" y="96.5" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#111111">
+              2
+            </text>
+          </g>
+
+          {/* === BLOCK 4: 1024-BLOCK MAIN MEMORY === */}
+          <g fontFamily="Fira Code, monospace">
+            <rect
+              x="674"
+              y="82"
+              width="170"
+              height="122"
+              fill="url(#dd01-hatch)"
+              stroke="#111111"
+              strokeWidth="1.6"
+            />
+            <rect
+              x="682"
+              y="89"
+              width="154"
+              height="108"
+              fill="#FFFFFF"
+              stroke="#111111"
               strokeWidth="0.8"
             />
-          ))}
-          <text
-            x="513"
-            y="144"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9.5"
-            fontWeight="600"
-            fill="var(--ink-primary)"
-          >
-            n = {config.cacheBlocks} BLKS ({partitioning.numSets} SETS &times; 8W)
+            <line x1="682" y1="110" x2="836" y2="110" stroke="#111111" strokeWidth="0.8" />
+            <text x="759" y="103" textAnchor="middle" fontSize="10" fontWeight="600" fill="#111111">
+              MAIN MEMORY
+            </text>
+            <text x="759" y="130" textAnchor="middle" fontSize="10" fontWeight="600" fill="#111111">
+              1024 BLOCKS
+            </text>
+            <text x="759" y="146" textAnchor="middle" fontSize="9" fill="#444444">
+              INDICES 0 .. 1023
+            </text>
+            <text x="759" y="164" textAnchor="middle" fontSize="9" fill="#444444">
+              {(1024 * config.blockSize).toLocaleString()} WORDS
+            </text>
+            <text x="759" y="182" textAnchor="middle" fontSize="8.5" fill="#666666">
+              B·Tm = {config.blockSize * config.memoryAccessTime} NS
+            </text>
+          </g>
+
+          {/* === BUS 1: CPU <-> CONTROLLER === */}
+          <g fontFamily="Fira Code, monospace" fontSize="8.5">
+            <line
+              x1="160"
+              y1="126"
+              x2="213"
+              y2="126"
+              stroke="#111111"
+              strokeWidth="1.4"
+              markerEnd="url(#dd01-arrow)"
+            />
+            <text x="188" y="119" textAnchor="middle" fill="#444444">
+              ADDR
+            </text>
+
+            <line
+              x1="216"
+              y1="162"
+              x2="163"
+              y2="162"
+              stroke="#111111"
+              strokeWidth={anyHit ? '2.2' : '1.2'}
+              strokeDasharray={anyHit ? undefined : '4 3'}
+              markerEnd="url(#dd01-arrow)"
+            />
+            <text x="188" y="176" textAnchor="middle" fontWeight={anyHit ? '600' : '400'} fill="#111111">
+              {anyHit ? 'HIT WORD' : 'WORD'}
+            </text>
+          </g>
+
+          {/* === BUS 2: CONTROLLER <-> 8-WAY CACHE === */}
+          <g fontFamily="Fira Code, monospace" fontSize="8.5">
+            <line
+              x1="376"
+              y1="126"
+              x2="427"
+              y2="126"
+              stroke="#111111"
+              strokeWidth="1.4"
+              markerEnd="url(#dd01-arrow)"
+            />
+            <text x="403" y="119" textAnchor="middle" fill="#444444">
+              LOOKUP
+            </text>
+
+            <line
+              x1="430"
+              y1="162"
+              x2="379"
+              y2="162"
+              stroke="#111111"
+              strokeWidth={anyHit ? '2.2' : '1.2'}
+              strokeDasharray={anyHit ? undefined : '4 3'}
+              markerEnd="url(#dd01-arrow)"
+            />
+            <text x="403" y="176" textAnchor="middle" fill="#111111">
+              Tc
+            </text>
+          </g>
+
+          {/* === BUS 3: 8-WAY CACHE <-> MAIN MEMORY === */}
+          <g fontFamily="Fira Code, monospace" fontSize="8.5">
+            <line
+              x1="604"
+              y1="126"
+              x2="671"
+              y2="126"
+              stroke={anyMiss ? '#111111' : '#767676'}
+              strokeWidth={anyMiss ? '2.2' : '1.1'}
+              strokeDasharray={anyMiss ? undefined : '4 3'}
+              markerEnd={anyMiss ? 'url(#dd01-arrow)' : 'url(#dd01-arrow-muted)'}
+            />
+            <text x="639" y="119" textAnchor="middle" fontWeight={anyMiss ? '600' : '400'} fill="#111111">
+              MISS REQ
+            </text>
+
+            <line
+              x1="674"
+              y1="162"
+              x2="607"
+              y2="162"
+              stroke={anyMiss ? '#111111' : '#767676'}
+              strokeWidth={anyMiss ? '2.2' : '1.1'}
+              strokeDasharray={anyMiss ? undefined : '4 3'}
+              markerEnd={anyMiss ? 'url(#dd01-arrow)' : 'url(#dd01-arrow-muted)'}
+            />
+            <text x="639" y="176" textAnchor="middle" fontWeight={anyMiss ? '600' : '400'} fill="#111111">
+              {config.blockSize}W BLK
+            </text>
+          </g>
+
+          {/* === LOWER CHANNEL: LOAD-THROUGH BYPASS PATH === */}
+          <g fontFamily="Fira Code, monospace">
+            <path
+              d="M 759 204 L 759 254 L 92 254 L 92 207"
+              fill="none"
+              stroke={isLoadThrough ? '#111111' : '#767676'}
+              strokeWidth={isLoadThrough ? (anyMiss ? '2.2' : '1.5') : '1'}
+              strokeDasharray={isLoadThrough ? undefined : '10 3 2 3'}
+              markerEnd={isLoadThrough ? 'url(#dd01-arrow)' : 'url(#dd01-arrow-muted)'}
+            />
+
+            <rect
+              x="220"
+              y="236"
+              width="428"
+              height="36"
+              fill={isLoadThrough ? '#F4F3EF' : '#FFFFFF'}
+              stroke={isLoadThrough ? '#111111' : '#767676'}
+              strokeWidth={isLoadThrough ? '1.3' : '0.9'}
+              strokeDasharray={isLoadThrough ? undefined : '4 3'}
+            />
+            {/* Boxed Note [3] */}
+            <rect x="228" y="247" width="14" height="14" fill="#FFFFFF" stroke="#111111" strokeWidth="0.8" />
+            <text x="235" y="257.5" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#111111">
+              3
+            </text>
+
+            <text
+              x="442"
+              y="251"
+              textAnchor="middle"
+              fontSize="9.5"
+              fontWeight="600"
+              fill="#111111"
+            >
+              {isLoadThrough
+                ? 'ACTIVE · LOAD-THROUGH WORD BYPASS TO CPU'
+                : 'PHANTOM · NON-LOAD-THROUGH (FILL CACHE FIRST)'}
+            </text>
+            <text x="442" y="265" textAnchor="middle" fontSize="8.8" fill="#444444">
+              {isLoadThrough
+                ? `M = Tc + Tm = ${config.cacheAccessTime} + ${config.memoryAccessTime} = ${missPenalty.toFixed(2)} NS`
+                : `M = Tc + (B·Tm) + Tc = ${config.cacheAccessTime} + (${config.blockSize}·${config.memoryAccessTime}) + ${config.cacheAccessTime} = ${missPenalty.toFixed(2)} NS`}
+            </text>
+          </g>
+
+          {/* === RIGHT COLUMN: VARIABLE TABLE & NOTES === */}
+          <g fontFamily="Fira Code, monospace">
+            <text x="878" y="49" fontSize="10" fontWeight="600" letterSpacing="0.8" fill="#111111">
+              VARIABLES
+            </text>
+            <line x1="876" y1="55" x2="1102" y2="55" stroke="#111111" strokeWidth="1" />
+            <text x="878" y="67" fontSize="8.5" fill="#555555">
+              CODE
+            </text>
+            <text x="916" y="67" fontSize="8.5" fill="#555555">
+              EXPR
+            </text>
+            <text x="1100" y="67" textAnchor="end" fontSize="8.5" fill="#555555">
+              VALUE
+            </text>
+            <line x1="876" y1="72" x2="1102" y2="72" stroke="#111111" strokeWidth="0.6" />
+
+            {varRows.map(([code, expr, val], i) => {
+              const y = 87 + i * 20;
+              return (
+                <g key={code}>
+                  <text x="878" y={y} fontSize="9.5" fontWeight="600" fill="#111111">
+                    {code}
+                  </text>
+                  <text x="916" y={y} fontSize="9" fill="#555555">
+                    {expr}
+                  </text>
+                  <text x="1100" y={y} textAnchor="end" fontSize="9.5" fontWeight="600" fill="#111111">
+                    {val}
+                  </text>
+                  <line x1="876" y1={y + 6} x2="1102" y2={y + 6} stroke="#DDDDDD" strokeWidth="0.6" />
+                </g>
+              );
+            })}
+
+            {/* Numbered Drawing Notes */}
+            <text x="878" y="218" fontSize="9.5" fontWeight="600" letterSpacing="0.8" fill="#111111">
+              NOTES
+            </text>
+            <text x="878" y="234" fontSize="8.5" fill="#444444">
+              [1] AGE TIES BREAK BY LOWEST WAY.
+            </text>
+            <text x="878" y="249" fontSize="8.5" fill="#444444">
+              [2] SOLID WAY = ACTIVE STEP SLOT.
+            </text>
+            <text x="878" y="264" fontSize="8.5" fill="#444444">
+              [3] DASH-DOT = INACTIVE BYPASS.
+            </text>
+            <text x="878" y="279" fontSize="8.5" fill="#666666">
+              GRAYSCALE SPEC · DO NOT SCALE.
+            </text>
+          </g>
+
+          {/* Bottom Footer Bar */}
+          <line x1="4" y1="294" x2="1116" y2="294" stroke="#111111" strokeWidth="0.8" />
+          <text x="16" y="307" fontFamily="Fira Code, monospace" fontSize="8.5" fill="#555555">
+            MACHINE 9 · 8-WAY BLOCK SET ASSOCIATIVE · LRU vs. MRU
           </text>
           <text
-            x="513"
-            y="160"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9"
-            fill="var(--ink-secondary)"
-          >
-            B = {config.blockSize} WORDS / BLOCK
-          </text>
-          <text
-            x="513"
-            y="175"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
+            x="1104"
+            y="307"
+            textAnchor="end"
+            fontFamily="Fira Code, monospace"
             fontSize="8.5"
-            fill="var(--ink-muted)"
+            fill="#555555"
           >
-            ACCESS TIME Tc = {config.cacheAccessTime} ns
+            SHEET 1 OF 2 · REV C
           </text>
-        </g>
-
-        {/* === BLOCK 4: 1024-BLOCK MAIN MEMORY === */}
-        <g>
-          <rect
-            x="666"
-            y="66"
-            width="166"
-            height="120"
-            rx="4"
-            fill="url(#dd-hatch-neutral)"
-            stroke="var(--ink-primary)"
-            strokeWidth="1.6"
-          />
-          <rect
-            x="674"
-            y="72"
-            width="150"
-            height="108"
-            rx="2"
-            fill="var(--bg-surface)"
-            fillOpacity="0.92"
-            stroke="var(--border-subtle)"
-            strokeWidth="0.8"
-          />
-          <line x1="674" y1="94" x2="824" y2="94" stroke="var(--border-subtle)" strokeWidth="1" />
-          <text
-            x="749"
-            y="86"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="10"
-            fontWeight="700"
-            fill="var(--ink-primary)"
-          >
-            MAIN MEMORY
-          </text>
-          <text
-            x="749"
-            y="114"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="10"
-            fontWeight="600"
-            fill="var(--ink-primary)"
-          >
-            1024 BLOCKS
-          </text>
-          <text
-            x="749"
-            y="130"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9"
-            fill="var(--ink-secondary)"
-          >
-            INDICES 0 .. 1023
-          </text>
-          <text
-            x="749"
-            y="148"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9"
-            fill="var(--ink-secondary)"
-          >
-            {1024 * config.blockSize} TOTAL WORDS
-          </text>
-          <text
-            x="749"
-            y="168"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="8.5"
-            fill="var(--ink-muted)"
-          >
-            XFER: B&middot;Tm = {config.blockSize * config.memoryAccessTime} ns
-          </text>
-        </g>
-
-        {/* === BUS 1: CPU <-> CONTROLLER (Address / Word Hit Return) === */}
-        <line
-          x1="164"
-          y1="112"
-          x2="215"
-          y2="112"
-          stroke="var(--ink-primary)"
-          strokeWidth="1.5"
-          markerEnd="url(#dd-arrow-ink)"
-        />
-        <text
-          x="191"
-          y="105"
-          textAnchor="middle"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fill="var(--ink-secondary)"
-        >
-          ADDR
-        </text>
-
-        <line
-          x1="218"
-          y1="146"
-          x2="167"
-          y2="146"
-          stroke={hitStroke}
-          strokeWidth={anyHit ? '2.2' : '1.4'}
-          markerEnd={anyHit ? 'url(#dd-arrow-hit)' : 'url(#dd-arrow-ink)'}
-        />
-        <text
-          x="191"
-          y="160"
-          textAnchor="middle"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fontWeight={anyHit ? '700' : '500'}
-          fill={hitStroke}
-        >
-          {anyHit ? 'HIT DATA' : 'WORD'}
-        </text>
-
-        {/* === BUS 2: CONTROLLER <-> 8-WAY CACHE === */}
-        <line
-          x1="374"
-          y1="112"
-          x2="423"
-          y2="112"
-          stroke="var(--ink-primary)"
-          strokeWidth="1.5"
-          markerEnd="url(#dd-arrow-ink)"
-        />
-        <text
-          x="400"
-          y="105"
-          textAnchor="middle"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fill="var(--ink-secondary)"
-        >
-          LOOKUP
-        </text>
-        <line
-          x1="426"
-          y1="146"
-          x2="377"
-          y2="146"
-          stroke={hitStroke}
-          strokeWidth={anyHit ? '2.2' : '1.4'}
-          markerEnd={anyHit ? 'url(#dd-arrow-hit)' : 'url(#dd-arrow-ink)'}
-        />
-        <text
-          x="400"
-          y="160"
-          textAnchor="middle"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fill={hitStroke}
-        >
-          Tc
-        </text>
-
-        {/* === BUS 3: 8-WAY CACHE <-> MAIN MEMORY (Block Fetch on Miss) === */}
-        <line
-          x1="600"
-          y1="112"
-          x2="663"
-          y2="112"
-          stroke={missStroke}
-          strokeWidth={anyMiss ? '2.2' : '1.4'}
-          strokeDasharray={anyMiss ? undefined : '4 3'}
-          markerEnd={
-            anyEvict
-              ? 'url(#dd-arrow-evict)'
-              : anyMiss
-              ? 'url(#dd-arrow-miss)'
-              : 'url(#dd-arrow-ink)'
-          }
-        />
-        <text
-          x="633"
-          y="105"
-          textAnchor="middle"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fontWeight={anyMiss ? '700' : '500'}
-          fill={missStroke}
-        >
-          MISS REQ
-        </text>
-
-        <line
-          x1="666"
-          y1="146"
-          x2="603"
-          y2="146"
-          stroke={missStroke}
-          strokeWidth={anyMiss ? '2.2' : '1.4'}
-          strokeDasharray={anyMiss ? undefined : '4 3'}
-          markerEnd={
-            anyEvict
-              ? 'url(#dd-arrow-evict)'
-              : anyMiss
-              ? 'url(#dd-arrow-miss)'
-              : 'url(#dd-arrow-ink)'
-          }
-        />
-        <text
-          x="633"
-          y="160"
-          textAnchor="middle"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fontWeight={anyMiss ? '700' : '500'}
-          fill={missStroke}
-        >
-          {config.blockSize}W BLK
-        </text>
-
-        {/* === LOWER CHANNEL: READ POLICY PATH (Non-Load-Through vs Load-Through Bypass) === */}
-        <g>
-          {/* Bypass path from Main Memory bottom directly to CPU bottom */}
-          <path
-            d="M 749 186 L 749 232 L 96 232 L 96 189"
-            fill="none"
-            stroke={bypassStroke}
-            strokeWidth={isLoadThrough ? (anyMiss ? '2.2' : '1.6') : '1.1'}
-            strokeDasharray={isLoadThrough ? undefined : '5 4'}
-            markerEnd={
-              isLoadThrough
-                ? anyMiss
-                  ? 'url(#dd-arrow-accent)'
-                  : 'url(#dd-arrow-ink)'
-                : 'url(#dd-arrow-muted)'
-            }
-          />
-
-          {/* Policy Callout Plate centered on lower channel */}
-          <rect
-            x="230"
-            y="216"
-            width="400"
-            height="32"
-            rx="3"
-            fill={isLoadThrough ? 'var(--accent-soft)' : 'var(--bg-surface)'}
-            stroke={isLoadThrough ? 'var(--accent-primary)' : 'var(--border-strong)'}
-            strokeWidth="1"
-          />
-          <text
-            x="430"
-            y="230"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="9.5"
-            fontWeight="700"
-            fill={isLoadThrough ? 'var(--accent-primary)' : 'var(--ink-primary)'}
-          >
-            {isLoadThrough
-              ? '[ACTIVE] LOAD-THROUGH BYPASS: WORD FORWARDED TO CPU IN PARALLEL'
-              : '[INACTIVE BYPASS] NON-LOAD-THROUGH: FULL BLOCK LOADS TO CACHE FIRST'}
-          </text>
-          <text
-            x="430"
-            y="243"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="8.5"
-            fill="var(--ink-secondary)"
-          >
-            {isLoadThrough
-              ? `M = Tc + Tm = ${config.cacheAccessTime} + ${config.memoryAccessTime} = ${missPenalty.toFixed(
-                  2
-                )} ns`
-              : `M = Tc + (B·Tm) + Tc = ${config.cacheAccessTime} + (${config.blockSize}·${
-                  config.memoryAccessTime
-                }) + ${config.cacheAccessTime} = ${missPenalty.toFixed(2)} ns`}
-          </text>
-        </g>
-
-        {/* Sheet Footer Line */}
-        <text
-          x="20"
-          y="270"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fill="var(--ink-muted)"
-        >
-          MACHINE 9 · 8-WAY BLOCK SET ASSOCIATIVE
-        </text>
-        <text
-          x="840"
-          y="270"
-          textAnchor="end"
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="8.5"
-          fill="var(--ink-muted)"
-        >
-          UNITS: NS / WORDS · DO NOT SCALE
-        </text>
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 };
