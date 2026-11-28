@@ -63,6 +63,8 @@ export function generateRandomSequence(seed: number, count = 64): number[] {
   return seq;
 }
 
+export const MAX_SEQUENCE_LENGTH = 2048;
+
 export interface ParsedSequenceResult {
   valid: boolean;
   sequence: number[];
@@ -71,7 +73,7 @@ export interface ParsedSequenceResult {
 
 /**
  * Parses comma- or whitespace-separated memory block indices.
- * Enforces integer values within [0, 1023].
+ * Enforces integer values within [0, 1023] and a responsive length cap.
  */
 export function parseCustomSequence(raw: string): ParsedSequenceResult {
   const trimmed = raw.trim();
@@ -84,6 +86,14 @@ export function parseCustomSequence(raw: string): ParsedSequenceResult {
   }
 
   const tokens = trimmed.split(/[\s,]+/).filter(Boolean);
+  if (tokens.length > MAX_SEQUENCE_LENGTH) {
+    return {
+      valid: false,
+      sequence: [],
+      error: `Sequence exceeds maximum of ${MAX_SEQUENCE_LENGTH.toLocaleString()} accesses (received ${tokens.length.toLocaleString()}). Trim the sequence to keep simulation responsive.`,
+    };
+  }
+
   const sequence: number[] = [];
 
   for (let i = 0; i < tokens.length; i++) {
