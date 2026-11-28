@@ -1,6 +1,6 @@
 # CSARCH2 Cache Memory Simulator (Machine 9)
 
-Interactive client-side simulator comparing **8-Way Block Set Associative (BSA) + LRU** vs. **8-Way BSA + MRU** cache replacement policies over a 1024-block main memory (`NLec 24–26` timing equations: `Non-Load-Through` vs. `Load-Through`).
+Interactive client-side simulator comparing **8-Way Block Set Associative (BSA) + LRU** vs. **8-Way BSA + MRU** cache replacement policies over a 1024-block main memory ( timing equations: `Non-Load-Through` vs. `Load-Through`).
 
 ## Prerequisites
 
