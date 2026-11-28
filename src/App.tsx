@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { MonitorPlay, PanelLeftClose, PanelLeftOpen, SlidersHorizontal } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   calculateMetrics,
   calculateMissPenalty,
@@ -20,7 +19,6 @@ import { ConfigPanel, type PresetType } from './components/ConfigPanel';
 import { PlaybackBar } from './components/PlaybackBar';
 import { StepCalloutBanner } from './components/StepCalloutBanner';
 import { TraceLog } from './components/TraceLog';
-import { TraceRibbon } from './components/TraceRibbon';
 
 const DEFAULT_CONFIG: SimulationConfig = {
   blockSize: 16,
@@ -52,12 +50,13 @@ export const App: React.FC = () => {
   const [gridLayout, setGridLayout] = useState<'side-by-side' | 'stacked' | 'lru' | 'mru'>(
     'side-by-side'
   );
-  const [inspectorTab, setInspectorTab] = useState<'trace' | 'diagrams'>('trace');
-  const [railOpen, setRailOpen] = useState<boolean>(true);
   const [presentationMode, setPresentationMode] = useState<boolean>(false);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
+  const [animateForward, setAnimateForward] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playbackSpeedMs, setPlaybackSpeedMs] = useState<number>(450);
+
+  const prevStepRef = useRef<number>(0);
 
   // Pre-compute full dual simulation traces synchronously whenever config or valid sequence changes
   const simulation = useMemo(
@@ -81,6 +80,26 @@ export const App: React.FC = () => {
     [config]
   );
 
+  const setStep = useCallback(
+    (nextIndex: number) => {
+      const clamped = Math.max(0, Math.min(sequence.length, nextIndex));
+      setAnimateForward(clamped === prevStepRef.current + 1);
+      prevStepRef.current = clamped;
+      setCurrentStepIndex(clamped);
+      if (clamped >= sequence.length) {
+        setIsPlaying(false);
+      }
+    },
+    [sequence.length]
+  );
+
+  const resetToZero = () => {
+    setAnimateForward(false);
+    prevStepRef.current = 0;
+    setCurrentStepIndex(0);
+    setIsPlaying(false);
+  };
+
   // Regenerate preset sequence automatically when `n` changes for n-dependent presets
   const handleConfigChange = (next: SimulationConfig) => {
     setConfig(next);
@@ -90,23 +109,20 @@ export const App: React.FC = () => {
         setSequence(seq);
         setRawSequence(formatSequence(seq));
         setSequenceError(null);
-        setCurrentStepIndex(0);
-        setIsPlaying(false);
+        resetToZero();
       } else if (activePreset === 'mid-repeat') {
         const seq = generateMidRepeatSequence(next.cacheBlocks);
         setSequence(seq);
         setRawSequence(formatSequence(seq));
         setSequenceError(null);
-        setCurrentStepIndex(0);
-        setIsPlaying(false);
+        resetToZero();
       }
     }
   };
 
   const handleSelectPreset = (preset: PresetType) => {
     setActivePreset(preset);
-    setIsPlaying(false);
-    setCurrentStepIndex(0);
+    resetToZero();
 
     if (preset === 'sequential') {
       const seq = generateSequentialSequence(config.cacheBlocks);
@@ -134,8 +150,7 @@ export const App: React.FC = () => {
     setSequence(seq);
     setRawSequence(formatSequence(seq));
     setSequenceError(null);
-    setCurrentStepIndex(0);
-    setIsPlaying(false);
+    resetToZero();
   };
 
   const handleRawSequenceChange = (val: string) => {
@@ -145,8 +160,7 @@ export const App: React.FC = () => {
     if (parsed.valid) {
       setSequence(parsed.sequence);
       setSequenceError(null);
-      setCurrentStepIndex(0);
-      setIsPlaying(false);
+      resetToZero();
     } else {
       setSequenceError(parsed.error ?? 'Invalid sequence.');
     }
@@ -155,33 +169,14 @@ export const App: React.FC = () => {
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
     setIsPlaying(false);
+    setAnimateForward(false);
   };
-
-  const handleStepTo = useCallback(
-    (stepIndex: number) => {
-      const clamped = Math.max(0, Math.min(sequence.length, stepIndex));
-      setCurrentStepIndex(clamped);
-      if (clamped >= sequence.length) {
-        setIsPlaying(false);
-      }
-    },
-    [sequence.length]
-  );
-
-  const handleInspectStep = useCallback(
-    (stepIndex: number) => {
-      if (viewMode === 'snapshot') {
-        setViewMode('step-by-step');
-      }
-      setIsPlaying(false);
-      handleStepTo(stepIndex);
-    },
-    [viewMode, handleStepTo]
-  );
 
   const handleTogglePlay = useCallback(() => {
     if (sequence.length === 0) return;
     if (currentStepIndex >= sequence.length) {
+      setAnimateForward(false);
+      prevStepRef.current = 0;
       setCurrentStepIndex(0);
       setIsPlaying(true);
     } else {
@@ -220,23 +215,23 @@ export const App: React.FC = () => {
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
         setIsPlaying(false);
-        handleStepTo(currentStepIndex + 1);
+        setStep(currentStepIndex + 1);
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
         setIsPlaying(false);
-        handleStepTo(currentStepIndex - 1);
+        setStep(currentStepIndex - 1);
       } else if (event.key === 'r' || event.key === 'R') {
         event.preventDefault();
         setIsPlaying(false);
-        handleStepTo(0);
+        setStep(0);
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [viewMode, currentStepIndex, handleStepTo, handleTogglePlay]);
+  }, [viewMode, currentStepIndex, setStep, handleTogglePlay]);
 
-  // Animated playback timer
+  // Animated playback timer (strictly forward +1 step)
   useEffect(() => {
     if (!isPlaying || viewMode !== 'step-by-step') return;
     const timer = window.setInterval(() => {
@@ -246,6 +241,8 @@ export const App: React.FC = () => {
           return prev;
         }
         const next = prev + 1;
+        setAnimateForward(true);
+        prevStepRef.current = next;
         if (next >= sequence.length) {
           setIsPlaying(false);
         }
@@ -300,90 +297,65 @@ export const App: React.FC = () => {
   const policyLabel =
     config.readPolicy === 'load-through' ? 'Load-Through' : 'Non-Load-Through';
 
-  const showConfigRail = !presentationMode && railOpen;
-
   return (
-    <div className="app-shell flex min-h-screen flex-col bg-canvas text-ink-primary">
-      {/* Committed Prussian Blueprint Top Instrument Bar */}
-      <header className="border-b border-shell-border bg-shell text-shell-ink">
-        <div className="app-shell-header flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
-          <div className="flex items-center gap-3">
-            {!presentationMode && (
-              <button
-                type="button"
-                aria-expanded={railOpen}
-                aria-label={railOpen ? 'Hide parameters rail' : 'Show parameters rail'}
-                title={railOpen ? 'Collapse parameters rail' : 'Expand parameters rail'}
-                onClick={() => setRailOpen((prev) => !prev)}
-                className="inline-flex items-center justify-center rounded-[3px] border border-shell-border bg-shell-elevated p-1.5 text-shell-muted transition-colors hover:border-shell-muted hover:text-shell-ink"
-              >
-                {railOpen ? (
-                  <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
-                )}
-              </button>
-            )}
-
-            <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-              <h1 className="text-sm font-bold tracking-tight text-shell-ink sm:text-[15px]">
-                CSARCH2 Cache Memory Simulator
-              </h1>
-              <span className="font-mono text-[11px] text-shell-muted">
-                Machine 9 &middot; 8-Way BSA (LRU vs. MRU)
-              </span>
-            </div>
+    <div className="min-h-screen bg-canvas text-ink-primary">
+      {/* Minimalist Warm Stationery Top Bar */}
+      <header className="border-b border-border-subtle bg-surface">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <h1 className="text-[15px] font-bold tracking-[-0.015em] text-ink-primary sm:text-base">
+              CSARCH2 Cache Memory Simulator
+            </h1>
+            <span className="font-mono text-xs text-ink-muted">
+              Machine 9 · 8-Way BSA (LRU vs. MRU)
+            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Live Hardware Spec Readout */}
-            <div className="hidden items-center gap-2 font-mono text-[11px] tabular-nums text-shell-muted xl:flex">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Compact Live Hardware Spec Readout */}
+            <div className="hidden items-center gap-2 font-mono text-xs tabular-nums text-ink-muted xl:flex">
               <span>
-                n=<strong className="text-shell-ink">{config.cacheBlocks}</strong> (
+                n=<strong className="font-semibold text-ink-primary">{config.cacheBlocks}</strong> (
                 {partitioning.numSets}s&times;8w)
               </span>
-              <span className="text-shell-border">/</span>
+              <span className="text-border-strong">/</span>
               <span>
-                B=<strong className="text-shell-ink">{config.blockSize}</strong>w
+                B=<strong className="font-semibold text-ink-primary">{config.blockSize}</strong>w
               </span>
-              <span className="text-shell-border">/</span>
+              <span className="text-border-strong">/</span>
               <span>
-                T:<strong className="text-shell-ink">{partitioning.tagBits}</strong> S:
-                <strong className="text-shell-ink">{partitioning.setBits}</strong> W:
-                <strong className="text-shell-ink">{partitioning.wordBits}</strong>
-              </span>
-              <span className="text-shell-border">/</span>
-              <span>
-                M=<strong className="text-shell-ink">{missPenalty.toFixed(2)}ns</strong>
+                M=<strong className="font-semibold text-ink-primary">{missPenalty.toFixed(2)}ns</strong>
               </span>
             </div>
 
-            {/* Global View Mode Switch (Step-by-Step vs Final Snapshot) */}
+            {/* Global View Mode Switch */}
             <div
-              role="group"
+              role="radiogroup"
               aria-label="Simulation View Mode"
-              className="inline-flex overflow-hidden rounded-[3px] border border-shell-border bg-shell-elevated text-xs"
+              className="inline-flex overflow-hidden rounded-[3px] border border-border-strong bg-surface text-xs"
             >
               <button
                 type="button"
-                aria-pressed={viewMode === 'step-by-step'}
+                role="radio"
+                aria-checked={viewMode === 'step-by-step'}
                 onClick={() => handleViewModeChange('step-by-step')}
-                className={`px-2.5 py-1 font-medium transition-colors ${
+                className={`px-3 py-1.5 font-medium transition-colors ${
                   viewMode === 'step-by-step'
-                    ? 'bg-surface text-ink-primary'
-                    : 'text-shell-muted hover:text-shell-ink'
+                    ? 'bg-ink-primary text-surface'
+                    : 'text-ink-secondary hover:bg-subtle hover:text-ink-primary'
                 }`}
               >
                 Step-by-Step
               </button>
               <button
                 type="button"
-                aria-pressed={viewMode === 'snapshot'}
+                role="radio"
+                aria-checked={viewMode === 'snapshot'}
                 onClick={() => handleViewModeChange('snapshot')}
-                className={`border-l border-shell-border px-2.5 py-1 font-medium transition-colors ${
+                className={`border-l border-border-strong px-3 py-1.5 font-medium transition-colors ${
                   viewMode === 'snapshot'
-                    ? 'bg-surface text-ink-primary'
-                    : 'text-shell-muted hover:text-shell-ink'
+                    ? 'bg-ink-primary text-surface'
+                    : 'text-ink-secondary hover:bg-subtle hover:text-ink-primary'
                 }`}
               >
                 Final Snapshot
@@ -396,70 +368,61 @@ export const App: React.FC = () => {
               aria-pressed={presentationMode}
               onClick={() => setPresentationMode((prev) => !prev)}
               title="Toggle Presentation Mode (P)"
-              className={`inline-flex items-center gap-1.5 rounded-[3px] border px-2.5 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-[3px] border px-3 py-1.5 text-xs font-medium transition-colors ${
                 presentationMode
-                  ? 'border-accent-border bg-accent-primary text-white'
-                  : 'border-shell-border bg-shell-elevated text-shell-ink hover:border-shell-muted'
+                  ? 'border-ink-primary bg-ink-primary text-surface'
+                  : 'border-border-strong bg-surface text-ink-primary hover:bg-subtle'
               }`}
             >
-              {presentationMode ? (
-                <>
-                  <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
-                  Exit Presentation
-                </>
-              ) : (
-                <>
-                  <MonitorPlay className="h-3.5 w-3.5" aria-hidden="true" />
-                  Present
-                </>
-              )}
+              {presentationMode ? 'Exit Present (P)' : 'Present (P)'}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Presentation Mode Inline Hardware Banner */}
-      {presentationMode && (
-        <div
-          aria-label="Active Configuration Summary"
-          className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-rail px-4 py-1.5 font-mono text-[11px] tabular-nums text-ink-secondary"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-[2px] bg-accent-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">
-              PRESENTATION
-            </span>
-            <span>
-              n=<strong className="text-ink-primary">{config.cacheBlocks}</strong> ({partitioning.numSets}s&times;8w)
-            </span>
-            <span className="text-border-strong">|</span>
-            <span>
-              B=<strong className="text-ink-primary">{config.blockSize}</strong>w
-            </span>
-            <span className="text-border-strong">|</span>
-            <strong className="text-ink-primary">{policyLabel}</strong>
-            <span className="text-border-strong">|</span>
-            <span>
-              Tc=<strong className="text-ink-primary">{config.cacheAccessTime}ns</strong>, Tm=
-              <strong className="text-ink-primary">{config.memoryAccessTime}ns</strong>
-            </span>
-            <span className="text-border-strong">|</span>
-            <span>
-              Seq=<strong className="text-ink-primary">{sequence.length}</strong>
-            </span>
-          </div>
-          <span className="text-ink-muted">
-            Space (Play) &middot; &larr;/&rarr; (Step) &middot; R (Reset) &middot; P (Controls)
-          </span>
-        </div>
-      )}
-
-      {/* Full-Bleed Split Workbench: Left Parameter Rail + Right Simulation Stage */}
-      <div
-        className={`workbench-layout grid flex-1 grid-cols-1 ${
-          showConfigRail ? 'lg:grid-cols-[272px_minmax(0,1fr)]' : ''
+      {/* Main Content Workbench */}
+      <main
+        className={`mx-auto max-w-[1440px] space-y-4 px-4 py-4 sm:px-5 ${
+          presentationMode ? 'space-y-5 py-5' : ''
         }`}
       >
-        {showConfigRail && (
+        {/* 1. Configuration Panel (Replaced by compact hardware spec strip in Presentation Mode) */}
+        {presentationMode ? (
+          <div
+            aria-label="Active Configuration Summary"
+            className="sheet flex flex-wrap items-center justify-between gap-2 rounded-[4px] bg-rail/60 px-4 py-2 font-mono text-xs tabular-nums text-ink-secondary"
+          >
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <strong className="font-semibold text-ink-primary">PRESENTATION</strong>
+              <span className="text-border-strong">|</span>
+              <span>
+                n=<strong className="text-ink-primary">{config.cacheBlocks}</strong> ({partitioning.numSets}s&times;8w)
+              </span>
+              <span className="text-border-strong">|</span>
+              <span>
+                B=<strong className="text-ink-primary">{config.blockSize}</strong>w
+              </span>
+              <span className="text-border-strong">|</span>
+              <strong className="text-ink-primary">{policyLabel}</strong>
+              <span className="text-border-strong">|</span>
+              <span>
+                Tc=<strong className="text-ink-primary">{config.cacheAccessTime}ns</strong>, Tm=
+                <strong className="text-ink-primary">{config.memoryAccessTime}ns</strong>
+              </span>
+              <span className="text-border-strong">|</span>
+              <span>
+                M=<strong className="text-ink-primary">{missPenalty.toFixed(2)}ns</strong>
+              </span>
+              <span className="text-border-strong">|</span>
+              <span>
+                Seq=<strong className="text-ink-primary">{sequence.length}</strong>
+              </span>
+            </div>
+            <span className="text-[11px] text-ink-muted">
+              Space Play &middot; &larr;/&rarr; Step &middot; R Reset &middot; P Controls
+            </span>
+          </div>
+        ) : (
           <ConfigPanel
             config={config}
             partitioning={partitioning}
@@ -475,221 +438,167 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Right Main Simulation Stage */}
-        <main className="app-stage flex min-w-0 flex-col bg-surface">
-          {/* 1. Sticky Stage Control Band: Playback + Dual-Track Trace Ribbon + Decision Strip */}
-          <section
-            aria-label="Playback and Step Telemetry"
-            className="stage-control-band border-b border-border-strong bg-surface md:sticky md:top-0 md:z-30"
-          >
-            <PlaybackBar
-              viewMode={viewMode}
-              currentStepIndex={currentStepIndex}
-              sequenceLength={sequence.length}
-              isPlaying={isPlaying}
-              playbackSpeedMs={playbackSpeedMs}
-              hasSequenceError={sequenceError !== null}
-              onTogglePlay={handleTogglePlay}
-              onStepTo={handleStepTo}
-              onSpeedChange={setPlaybackSpeedMs}
-            />
-
-            <TraceRibbon
-              lruSteps={simulation.lru.steps}
-              mruSteps={simulation.mru.steps}
-              currentStepIndex={currentStepIndex}
-              isSnapshotMode={isSnapshotMode}
-              onSelectStep={handleInspectStep}
-            />
-
-            {!isSnapshotMode && (
-              <StepCalloutBanner
-                lruStep={lruActiveStep}
-                mruStep={mruActiveStep}
-                totalSteps={sequence.length}
-                nextBlockPreview={sequence.length > 0 ? sequence[0] : null}
-              />
-            )}
-          </section>
-
-          {/* 2. Centerpiece: Dual 8-Way Cache Memory Matrices */}
-          <section aria-label="Visual Cache Memory Grids" className="matrix-section bg-surface">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-canvas/70 px-4 py-2">
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-secondary">
-                  Cache Memory Matrices (S0&ndash;S{partitioning.numSets - 1}, Ways 0&ndash;7)
-                </h2>
-                <span className="font-mono text-[10.5px] text-ink-muted">
-                  V: Valid &middot; A: Age &middot; B: Block &middot; T: Tag
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Inline Semantic Legend */}
-                <div
-                  className="flex items-center gap-2.5 font-mono text-[10.5px]"
-                  aria-label="Cache Event Legend"
-                >
-                  <span className="inline-flex items-center gap-1 font-medium text-status-hit">
-                    <span className="h-2 w-2 rounded-[1px] bg-status-hit" aria-hidden="true" />
-                    Hit
-                  </span>
-                  <span className="inline-flex items-center gap-1 font-medium text-status-miss">
-                    <span className="h-2 w-2 rounded-[1px] bg-status-miss" aria-hidden="true" />
-                    Load
-                  </span>
-                  <span className="inline-flex items-center gap-1 font-medium text-status-evict">
-                    <span className="h-2 w-2 rounded-[1px] bg-status-evict" aria-hidden="true" />
-                    Evict
-                  </span>
-                </div>
-
-                {/* Underlined Matrix Layout Tabs */}
-                <div
-                  role="group"
-                  aria-label="Cache Grid Layout"
-                  className="inline-flex items-center gap-3 text-xs sm:border-l sm:border-border-subtle sm:pl-3"
-                >
-                  {(
-                    [
-                      { id: 'side-by-side', label: 'Side-by-Side', mobileLabel: 'Both', xlOnly: false },
-                      { id: 'stacked', label: 'Stacked', mobileLabel: 'Stacked', xlOnly: true },
-                      { id: 'lru', label: 'LRU', mobileLabel: 'LRU', xlOnly: false },
-                      { id: 'mru', label: 'MRU', mobileLabel: 'MRU', xlOnly: false },
-                    ] as const
-                  ).map((opt) => {
-                    const active = gridLayout === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => setGridLayout(opt.id)}
-                        className={`${opt.xlOnly ? 'hidden xl:inline-block' : ''} border-b-2 pb-0.5 font-medium transition-colors ${
-                          active
-                            ? 'border-accent-primary text-accent-primary'
-                            : 'border-transparent text-ink-secondary hover:text-ink-primary'
-                        }`}
-                      >
-                        <span className="xl:hidden">{opt.mobileLabel}</span>
-                        <span className="hidden xl:inline">{opt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div
-              className={
-                gridLayout === 'side-by-side'
-                  ? 'grid grid-cols-1 divide-y divide-border-subtle xl:grid-cols-2 xl:divide-x xl:divide-y-0'
-                  : 'grid grid-cols-1 divide-y divide-border-subtle'
-              }
-            >
-              {gridLayout !== 'mru' && (
-                <CacheGrid
-                  policy="LRU"
-                  cacheState={lruDisplayedCache}
-                  activeStep={lruActiveStep}
-                  highlightActive={!isSnapshotMode}
-                  compact={gridLayout === 'side-by-side'}
-                />
-              )}
-              {gridLayout !== 'lru' && (
-                <CacheGrid
-                  policy="MRU"
-                  cacheState={mruDisplayedCache}
-                  activeStep={mruActiveStep}
-                  highlightActive={!isSnapshotMode}
-                  compact={gridLayout === 'side-by-side'}
-                />
-              )}
-            </div>
-          </section>
-
-          {/* 3. Unified Performance Comparison Ledger */}
-          <ComparisonStats
-            lruMetrics={lruDisplayedMetrics}
-            mruMetrics={mruDisplayedMetrics}
-            config={config}
-            stepLabel={stepLabel}
+        {/* 2. Sticky Playback Dock + Step Callout Banner */}
+        <div className="sheet overflow-hidden rounded-[4px] md:sticky md:top-2 md:z-30">
+          <PlaybackBar
+            viewMode={viewMode}
+            currentStepIndex={currentStepIndex}
+            sequenceLength={sequence.length}
+            isPlaying={isPlaying}
+            playbackSpeedMs={playbackSpeedMs}
+            hasSequenceError={sequenceError !== null}
+            onViewModeChange={handleViewModeChange}
+            onTogglePlay={handleTogglePlay}
+            onStepTo={setStep}
+            onSpeedChange={setPlaybackSpeedMs}
           />
 
-          {/* 4. Tabbed Bottom Analysis Inspector (Execution Trace Log | Architecture Diagrams) */}
-          <section
-            aria-label="Trace and Architecture Inspector"
-            className="analysis-inspector border-t border-border-subtle bg-surface"
-          >
-            <div
-              role="tablist"
-              aria-label="Analysis Views"
-              className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-subtle/40 px-4"
-            >
-              <div className="flex items-center gap-6">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={inspectorTab === 'trace'}
-                  onClick={() => setInspectorTab('trace')}
-                  className={`border-b-2 py-2.5 text-xs font-semibold transition-colors ${
-                    inspectorTab === 'trace'
-                      ? 'border-accent-primary text-ink-primary'
-                      : 'border-transparent text-ink-secondary hover:text-ink-primary'
-                  }`}
-                >
-                  Execution Trace Log{' '}
-                  <span className="ml-1 font-mono text-[11px] font-normal tabular-nums text-ink-muted">
-                    ({simulation.lru.steps.length})
-                  </span>
-                </button>
+          {!isSnapshotMode && (
+            <StepCalloutBanner
+              lruStep={lruActiveStep}
+              mruStep={mruActiveStep}
+              totalSteps={sequence.length}
+              nextBlockPreview={sequence.length > 0 ? sequence[0] : null}
+              presentationMode={presentationMode}
+            />
+          )}
+        </div>
 
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={inspectorTab === 'diagrams'}
-                  onClick={() => setInspectorTab('diagrams')}
-                  className={`border-b-2 py-2.5 text-xs font-semibold transition-colors ${
-                    inspectorTab === 'diagrams'
-                      ? 'border-accent-primary text-ink-primary'
-                      : 'border-transparent text-ink-secondary hover:text-ink-primary'
-                  }`}
-                >
-                  Architecture Diagrams{' '}
-                  <span className="ml-1 font-mono text-[11px] font-normal text-ink-muted">
-                    (DWG-01 &middot; DWG-02)
-                  </span>
-                </button>
-              </div>
-
-              <span className="hidden font-mono text-[10.5px] tabular-nums text-ink-muted sm:inline">
-                {policyLabel} &middot; Tag {partitioning.tagBits}b / Set {partitioning.setBits}b /
-                Word {partitioning.wordBits}b &middot; M = {missPenalty.toFixed(2)} ns
+        {/* 3. Visual 8-Way BSA Cache Memory Grids (Elevated Above the Fold) */}
+        <section aria-label="Visual Cache Memory Grids" className="space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <h2 className="text-[13px] font-semibold text-ink-primary">
+                Cache Memory Matrices (Set 0 &ndash; Set {partitioning.numSets - 1}, Ways 0 &ndash; 7)
+              </h2>
+              <span className="font-mono text-xs text-ink-muted">
+                T: Tag &middot; A: Age &middot; B: Block &middot; V: Valid
               </span>
             </div>
 
-            {inspectorTab === 'trace' ? (
-              <TraceLog
-                lruResult={simulation.lru}
-                mruResult={simulation.mru}
-                config={config}
-                partitioning={partitioning}
-                viewMode={viewMode}
-                currentStepIndex={currentStepIndex}
-                onSelectStep={handleInspectStep}
-              />
-            ) : (
-              <ArchitecturePanel
-                config={config}
-                partitioning={partitioning}
-                lruStep={lruActiveStep}
-                mruStep={mruActiveStep}
-                isSnapshotMode={isSnapshotMode}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Inline Semantic State Legend */}
+              <div
+                className="flex items-center gap-3 font-mono text-xs"
+                aria-label="Cache Event Legend"
+              >
+                <span className="inline-flex items-center gap-1.5 font-medium text-status-hit">
+                  <span className="h-2 w-2 rounded-[1px] bg-status-hit" aria-hidden="true" />
+                  Hit
+                </span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-status-miss">
+                  <span className="h-2 w-2 rounded-[1px] bg-status-miss" aria-hidden="true" />
+                  Miss / Load
+                </span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-status-evict">
+                  <span className="h-2 w-2 rounded-[1px] bg-status-evict" aria-hidden="true" />
+                  Evict
+                </span>
+              </div>
+
+              {/* Grid Layout Switch */}
+              <div
+                role="radiogroup"
+                aria-label="Cache Grid Layout"
+                className="inline-flex items-center gap-3 border-l border-border-subtle pl-3 text-xs"
+              >
+                {(
+                  [
+                    { id: 'side-by-side', label: 'Side-by-Side' },
+                    { id: 'stacked', label: 'Stacked' },
+                    { id: 'lru', label: 'LRU' },
+                    { id: 'mru', label: 'MRU' },
+                  ] as const
+                ).map((opt) => {
+                  const active = gridLayout === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setGridLayout(opt.id)}
+                      className={`border-b-2 pb-0.5 font-medium transition-colors ${
+                        active
+                          ? 'border-ink-primary text-ink-primary'
+                          : 'border-transparent text-ink-muted hover:text-ink-primary'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={
+              gridLayout === 'side-by-side'
+                ? 'grid grid-cols-1 gap-4 xl:grid-cols-2'
+                : 'grid grid-cols-1 gap-4'
+            }
+          >
+            {gridLayout !== 'mru' && (
+              <CacheGrid
+                policy="LRU"
+                cacheState={lruDisplayedCache}
+                activeStep={lruActiveStep}
+                highlightActive={!isSnapshotMode}
+                compact={gridLayout === 'side-by-side'}
+                animateStep={animateForward}
+                presentationMode={presentationMode}
               />
             )}
-          </section>
-        </main>
-      </div>
+            {gridLayout !== 'lru' && (
+              <CacheGrid
+                policy="MRU"
+                cacheState={mruDisplayedCache}
+                activeStep={mruActiveStep}
+                highlightActive={!isSnapshotMode}
+                compact={gridLayout === 'side-by-side'}
+                animateStep={animateForward}
+                presentationMode={presentationMode}
+              />
+            )}
+          </div>
+        </section>
+
+        {/* 4. Side-by-Side Performance Comparison Ledger */}
+        <ComparisonStats
+          lruMetrics={lruDisplayedMetrics}
+          mruMetrics={mruDisplayedMetrics}
+          config={config}
+          stepLabel={stepLabel}
+          presentationMode={presentationMode}
+        />
+
+        {/* 5. Technical Dimensional Diagrams (DWG-01 & DWG-02) */}
+        <ArchitecturePanel
+          config={config}
+          partitioning={partitioning}
+          lruStep={lruActiveStep}
+          mruStep={mruActiveStep}
+          isSnapshotMode={isSnapshotMode}
+        />
+
+        {/* 6. Execution Trace Log */}
+        <TraceLog
+          lruResult={simulation.lru}
+          mruResult={simulation.mru}
+          config={config}
+          partitioning={partitioning}
+          viewMode={viewMode}
+          currentStepIndex={currentStepIndex}
+          onSelectStep={(step) => {
+            if (viewMode === 'snapshot') {
+              setViewMode('step-by-step');
+            }
+            setIsPlaying(false);
+            setStep(step);
+          }}
+        />
+      </main>
     </div>
   );
 };

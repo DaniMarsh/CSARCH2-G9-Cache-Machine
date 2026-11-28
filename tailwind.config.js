@@ -4,15 +4,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Public Sans"', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        sans: ['"Fira Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"Fira Code"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
-        shell: 'var(--shell-bg)',
-        'shell-elevated': 'var(--shell-elevated)',
-        'shell-border': 'var(--shell-border)',
-        'shell-ink': 'var(--shell-ink)',
-        'shell-muted': 'var(--shell-muted)',
         canvas: 'var(--bg-canvas)',
         rail: 'var(--bg-rail)',
         surface: 'var(--bg-surface)',
@@ -23,9 +18,6 @@ export default {
         'ink-primary': 'var(--ink-primary)',
         'ink-secondary': 'var(--ink-secondary)',
         'ink-muted': 'var(--ink-muted)',
-        'accent-primary': 'var(--accent-primary)',
-        'accent-soft': 'var(--accent-soft)',
-        'accent-border': 'var(--accent-border)',
         'status-hit': 'var(--status-hit)',
         'status-hit-bg': 'var(--status-hit-bg)',
         'status-hit-border': 'var(--status-hit-border)',

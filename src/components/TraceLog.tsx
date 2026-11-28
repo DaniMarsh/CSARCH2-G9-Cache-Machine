@@ -94,17 +94,29 @@ export const TraceLog: React.FC<TraceLogProps> = ({
   };
 
   return (
-    <div aria-label="Execution Trace Log" className="bg-surface">
-      {/* Sub-Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border-subtle bg-canvas/55 px-4 py-2">
-        {/* LRU / MRU Policy Switch */}
-        <div className="flex items-center gap-4">
+    <section
+      aria-label="Execution Trace Log"
+      className="sheet rounded-[4px]"
+    >
+      {/* Header Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-rail/70 px-4 py-2.5">
+        <div className="flex items-baseline gap-2.5">
+          <h2 className="text-[13px] font-semibold text-ink-primary">
+            Execution Trace Log
+          </h2>
+          <span className="font-mono text-xs tabular-nums text-ink-muted">
+            {activeResult.steps.length} steps
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* LRU / MRU Policy Switch */}
           <div
             role="tablist"
             aria-label="Replacement Policy Trace Tabs"
-            className="inline-flex items-center gap-1"
+            className="inline-flex overflow-hidden rounded-[3px] border border-border-strong bg-surface"
           >
-            {(['LRU', 'MRU'] as ReplacementPolicy[]).map((tab) => {
+            {(['LRU', 'MRU'] as ReplacementPolicy[]).map((tab, idx) => {
               const selected = activeTab === tab;
               return (
                 <button
@@ -113,10 +125,12 @@ export const TraceLog: React.FC<TraceLogProps> = ({
                   role="tab"
                   aria-selected={selected}
                   onClick={() => setActiveTab(tab)}
-                  className={`rounded-[2px] border px-2.5 py-1 font-mono text-xs font-medium transition-colors ${
+                  className={`px-2.5 py-1 font-mono text-xs font-medium transition-colors ${
+                    idx > 0 ? 'border-l border-border-strong' : ''
+                  } ${
                     selected
-                      ? 'border-shell bg-shell text-shell-ink'
-                      : 'border-border-subtle bg-surface text-ink-secondary hover:border-border-strong hover:text-ink-primary'
+                      ? 'bg-ink-primary text-surface'
+                      : 'bg-surface text-ink-secondary hover:bg-subtle hover:text-ink-primary'
                   }`}
                 >
                   8-Way + {tab}
@@ -125,66 +139,69 @@ export const TraceLog: React.FC<TraceLogProps> = ({
             })}
           </div>
 
+          {/* Table vs Raw Text Switch */}
           <div
-            role="group"
+            role="radiogroup"
             aria-label="Trace Display Format"
             className="inline-flex items-center gap-3 text-xs"
           >
             <button
               type="button"
-              aria-pressed={displayFormat === 'table'}
+              role="radio"
+              aria-checked={displayFormat === 'table'}
               onClick={() => setDisplayFormat('table')}
               className={`border-b-2 pb-0.5 font-medium transition-colors ${
                 displayFormat === 'table'
-                  ? 'border-accent-primary text-accent-primary'
-                  : 'border-transparent text-ink-secondary hover:text-ink-primary'
+                  ? 'border-ink-primary text-ink-primary'
+                  : 'border-transparent text-ink-muted hover:text-ink-primary'
               }`}
             >
               Table
             </button>
             <button
               type="button"
-              aria-pressed={displayFormat === 'raw'}
+              role="radio"
+              aria-checked={displayFormat === 'raw'}
               onClick={() => setDisplayFormat('raw')}
               className={`border-b-2 pb-0.5 font-medium transition-colors ${
                 displayFormat === 'raw'
-                  ? 'border-accent-primary text-accent-primary'
-                  : 'border-transparent text-ink-secondary hover:text-ink-primary'
+                  ? 'border-ink-primary text-ink-primary'
+                  : 'border-transparent text-ink-muted hover:text-ink-primary'
               }`}
             >
               Raw Text
             </button>
           </div>
-        </div>
 
-        {/* Export Actions */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 rounded-[3px] border border-border-subtle bg-surface px-2.5 py-1 text-xs font-medium text-ink-secondary transition-colors hover:border-border-strong hover:bg-hover hover:text-ink-primary"
-          >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-status-hit" aria-hidden="true" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                Copy Text
-              </>
-            )}
-          </button>
+          {/* Copy & Download */}
+          <div className="flex items-center gap-1.5 border-l border-border-subtle pl-3">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1.5 rounded-[3px] border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium text-ink-primary transition-colors hover:bg-subtle"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-status-hit" aria-hidden="true" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5 text-ink-secondary" aria-hidden="true" />
+                  Copy
+                </>
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 rounded-[3px] border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium text-ink-primary transition-colors hover:bg-hover"
-          >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            Download (.txt)
-          </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="inline-flex items-center gap-1.5 rounded-[3px] border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium text-ink-primary transition-colors hover:bg-subtle"
+            >
+              <Download className="h-3.5 w-3.5 text-ink-secondary" aria-hidden="true" />
+              Download (.txt)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -192,38 +209,38 @@ export const TraceLog: React.FC<TraceLogProps> = ({
       {displayFormat === 'table' ? (
         <div
           ref={scrollContainerRef}
-          className="trace-scroll max-h-[380px] overflow-auto"
+          className="trace-scroll max-h-[360px] overflow-auto"
         >
-          <table className="w-full min-w-[660px] border-collapse text-left font-mono text-xs tabular-nums">
-            <thead className="sticky top-0 z-10 border-b border-border-subtle bg-subtle text-[10.5px] font-semibold uppercase tracking-wider text-ink-secondary">
+          <table className="w-full min-w-[640px] border-collapse font-mono text-xs tabular-nums">
+            <thead className="sticky top-0 z-10 border-b border-border-subtle bg-canvas text-[11px] font-semibold text-ink-secondary">
               <tr>
-                <th scope="col" className="px-4 py-2">
+                <th scope="col" className="px-4 py-2 text-right font-medium">
                   Step
                 </th>
-                <th scope="col" className="px-3 py-2">
-                  Seq (MM Block)
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  MM Block
                 </th>
-                <th scope="col" className="px-3 py-2">
+                <th scope="col" className="px-3 py-2 text-right font-medium">
                   Set
                 </th>
-                <th scope="col" className="px-3 py-2">
+                <th scope="col" className="px-3 py-2 text-right font-medium">
                   Tag
                 </th>
-                <th scope="col" className="px-3 py-2">
-                  Hit / Miss
+                <th scope="col" className="px-4 py-2 text-left font-medium">
+                  Outcome
                 </th>
-                <th scope="col" className="px-3 py-2">
+                <th scope="col" className="px-3 py-2 text-right font-medium">
                   Way
                 </th>
-                <th scope="col" className="px-3 py-2">
-                  Evicted Block
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  Evicted
                 </th>
-                <th scope="col" className="px-4 py-2 text-right">
+                <th scope="col" className="px-4 py-2 text-right font-medium">
                   Age
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border-subtle">
+            <tbody className="divide-y divide-border-subtle/80">
               {activeResult.steps.map((s) => {
                 const isCurrent =
                   viewMode === 'step-by-step' && s.step === currentStepIndex;
@@ -245,39 +262,33 @@ export const TraceLog: React.FC<TraceLogProps> = ({
                     }
                     className={`cursor-pointer transition-colors ${
                       isCurrent
-                        ? 'bg-accent-soft font-semibold text-ink-primary'
+                        ? 'bg-subtle font-semibold text-ink-primary'
                         : isFuture
                         ? 'bg-surface text-ink-muted opacity-65 hover:bg-canvas hover:opacity-100'
                         : 'bg-surface text-ink-primary hover:bg-canvas'
                     }`}
                   >
-                    <td className="px-4 py-1.5 text-ink-secondary">{s.step}</td>
-                    <td className="px-3 py-1.5 font-semibold">{s.blockAddress}</td>
-                    <td className="px-3 py-1.5">{s.setIndex}</td>
-                    <td className="px-3 py-1.5">{s.tag}</td>
-                    <td className="px-3 py-1.5">
+                    <td className="px-4 py-1.5 text-right text-ink-secondary">{s.step}</td>
+                    <td className="px-3 py-1.5 text-right font-semibold">{s.blockAddress}</td>
+                    <td className="px-3 py-1.5 text-right">{s.setIndex}</td>
+                    <td className="px-3 py-1.5 text-right">{s.tag}</td>
+                    <td className="px-4 py-1.5 text-left">
                       {s.outcome === 'HIT' ? (
-                        <span className="inline-block rounded-[2px] border border-status-hit-border bg-status-hit-bg px-1.5 py-0.5 text-[10.5px] font-semibold text-status-hit">
-                          HIT
-                        </span>
+                        <span className="font-semibold text-status-hit">HIT</span>
                       ) : s.evictedBlock !== null ? (
-                        <span className="inline-block rounded-[2px] border border-status-evict-border bg-status-evict-bg px-1.5 py-0.5 text-[10.5px] font-semibold text-status-evict">
-                          MISS (EVICT)
-                        </span>
+                        <span className="font-semibold text-status-evict">MISS · EVICT</span>
                       ) : (
-                        <span className="inline-block rounded-[2px] border border-status-miss-border bg-status-miss-bg px-1.5 py-0.5 text-[10.5px] font-semibold text-status-miss">
-                          MISS
-                        </span>
+                        <span className="font-semibold text-status-miss">MISS · LOAD</span>
                       )}
                     </td>
-                    <td className="px-3 py-1.5">Way {s.wayIndex}</td>
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-1.5 text-right">{s.wayIndex}</td>
+                    <td className="px-3 py-1.5 text-right">
                       {s.evictedBlock !== null ? (
                         <span className="font-semibold text-status-evict">
-                          Block {s.evictedBlock}
+                          {s.evictedBlock}
                         </span>
                       ) : (
-                        <span className="text-ink-muted">—</span>
+                        <span className="text-ink-muted">&mdash;</span>
                       )}
                     </td>
                     <td className="px-4 py-1.5 text-right">{s.age}</td>
@@ -288,10 +299,10 @@ export const TraceLog: React.FC<TraceLogProps> = ({
           </table>
         </div>
       ) : (
-        <pre className="trace-scroll max-h-[380px] overflow-auto bg-canvas/70 p-4 font-mono text-xs leading-relaxed tabular-nums text-ink-primary">
+        <pre className="trace-scroll max-h-[360px] overflow-auto bg-canvas/70 p-4 font-mono text-xs leading-relaxed tabular-nums text-ink-primary">
           {rawText}
         </pre>
       )}
-    </div>
+    </section>
   );
 };
